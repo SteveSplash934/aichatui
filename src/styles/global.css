@@ -1,0 +1,64 @@
+@import url('https://fonts.googleapis.com/css2?family=Alan+Sans:wght@300..900&family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&family=Noto+Sans+JP:wght@100..900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+
+@import "tailwindcss";
+
+@theme {
+  --font-heading: "Poppins", sans-serif;
+  --font-body: "Lato", sans-serif;
+  --font-alt: "Alan Sans", sans-serif;
+  --font-caption: "Noto Sans JP", sans-serif;
+
+  /* Light Theme */
+  --color-light-bg: #FBF9FF;
+  --color-light-button-text: #FFFFFF;
+  --color-light-button-bg: #E0E0E0;
+  --color-light-button-muted: #A0A0A0;
+  --color-light-success: #28A745;
+  --color-light-warning: #FFC107;
+  --color-light-error: #F02D3A;
+  --color-light-info: #3185FC;
+  --color-light-surface-bg: #F5F5F5;
+  --color-light-surface-stroke: #A0A0A0;
+  --color-light-placeholder: #999999;
+
+  /* Dark Theme */
+  --color-dark-bg: #000807;
+  --color-dark-button-text: #F5F5F5;
+  --color-dark-button-bg: #111111;
+  --color-dark-button-muted: #333333;
+  --color-dark-success: #28A745;
+  --color-dark-warning: #FFC107;
+  --color-dark-error: #F02D3A;
+  --color-dark-info: #3185FC;
+  --color-dark-surface-bg: #1A1A1A;
+  --color-dark-surface-stroke: #333333;
+  --color-dark-placeholder: #999999;
+}
+
+@layer base {
+  html {
+    font-family: var(--font-body);
+    background-color: var(--color-light-bg);
+    color: #000;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  [data-theme='dark'] {
+    background-color: var(--color-dark-bg);
+    color: #F5F5F5;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-heading);
+  }
+
+  .caption {
+    font-family: var(--font-caption);
+    font-size: 0.85rem;
+  }
+}
