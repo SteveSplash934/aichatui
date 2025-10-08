@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useTheme } from "../hook/useTheme";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, CheckCircle, AlertCircle } from "lucide-react";
 
 export default function Setup() {
     const { theme } = useTheme();
@@ -13,60 +13,60 @@ export default function Setup() {
         authToken: "",
     });
 
-    const [errors, setErrors] = useState({
-        userId: "",
-        agentUrl: "",
-        authToken: "",
-    });
-
-    const uuidv4Regex =
-        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-    const validateField = (name, value) => {
-        let error = "";
-
-        if (name === "userId" || name === "authToken") {
-            if (!uuidv4Regex.test(value)) {
-                error = "Must be a valid UUID v4";
-            }
-        }
-
-        if (name === "agentUrl") {
-            try {
-                new URL(value);
-            } catch {
-                error = "Must be a valid URL";
-            }
-        }
-
-        setErrors((prev) => ({ ...prev, [name]: error }));
-    };
+    const [alert, setAlert] = useState({ type: "", message: "" });
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData((prev) => ({ ...prev, [name]: value }));
-        validateField(name, value);
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        if (Object.values(errors).some((err) => err) ||
-            Object.values(formData).some((v) => !v.trim())) {
-            return;
-        }
-        console.log("Form Submitted:", formData);
-    };
+        setAlert({ type: "", message: "" });
+        setIsSubmitting(true);
 
-    const isFieldValid = (name) => formData[name] && !errors[name];
+        try {
+            const res = await fetch(`${formData.agentUrl}/connect`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    user_id: formData.userId,
+                    auth_token: formData.authToken,
+                }),
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data?.message || "Failed to connect to agent.");
+            }
+
+            // Save to localStorage
+            localStorage.setItem("user_id", formData.userId);
+            localStorage.setItem("user_auth_token", formData.authToken);
+            localStorage.setItem("agent_url", formData.agentUrl);
+
+            setAlert({
+                type: "success",
+                message: `Successfully connected to Agent: ${formData.agentUrl} as ${data.user?.firstname || "User"}`,
+            });
+
+            // Navigate to next screen after short delay
+            setTimeout(() => navigate("/next"), 1500);
+        } catch (error) {
+            setAlert({ type: "error", message: error.message });
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
 
     const isFormValid =
-        Object.values(formData).every((v) => v.trim()) &&
-        Object.values(errors).every((err) => err === "");
-
-    const inputBase = `w-full px-4 py-2 rounded-full border focus:outline-none focus:ring-2 pr-10 transition`;
-
-    const lightInput = `bg-white text-black placeholder-light-placeholder border-gray-300 focus:ring-light-info`;
-    const darkInput = `bg-dark-surface-bg text-white placeholder-dark-placeholder border-dark-surface-stroke focus:ring-dark-info`;
+        formData.userId.trim() &&
+        formData.agentUrl.trim() &&
+        formData.authToken.trim();
 
     return (
         <div className="flex flex-col items-center justify-center w-full h-full px-4 transition-colors duration-300">
@@ -77,21 +77,38 @@ export default function Setup() {
                     aria-label="Go back"
                     className={`inline-flex items-center gap-1 py-1.5 rounded-full text-sm font-medium transition
                         ${theme === "dark"
-                            ? "text-dark-button-text hover:text-dark-info active:text-dark-info"
-                            : "text-black hover:text-light-info active:text-light-info"}
+                            ? "text-dark-button-text hover:text-dark-info"
+                            : "text-black hover:text-light-info"}
                     `}
                 >
                     <ArrowLeft className="w-4 h-4" />
                 </button>
             </div>
 
-            {/* Title */}
             <h1 className="text-2xl md:text-3xl font-heading font-semibold text-center mb-2">
                 Welcome!
             </h1>
-            <p className="text-center text-sm text-gray-600 dark:text-dark-placeholder mb-8">
+            <p className="text-center text-sm text-gray-600 dark:text-dark-placeholder mb-5">
                 Please enter your setup info to continue
             </p>
+
+            {/* Alert Box */}
+            {alert.message && (
+                <div
+                    className={`w-full max-w-[350px] mb-4 flex items-center gap-2 text-sm px-3 py-2 rounded-lg
+                        ${alert.type === "success"
+                            ? "bg-green-100 text-green-700 border border-green-300"
+                            : "bg-red-100 text-red-700 border border-red-300"}
+                    `}
+                >
+                    {alert.type === "success" ? (
+                        <CheckCircle className="w-4 h-4" />
+                    ) : (
+                        <AlertCircle className="w-4 h-4" />
+                    )}
+                    <span>{alert.message}</span>
+                </div>
+            )}
 
             {/* Form */}
             <form
@@ -99,7 +116,7 @@ export default function Setup() {
                 className="w-full max-w-[350px] space-y-5 mx-auto"
             >
                 {/* User ID */}
-                <div className="relative">
+                <div>
                     <label htmlFor="userId" className="block text-sm font-medium mb-1">
                         User ID
                     </label>
@@ -110,18 +127,16 @@ export default function Setup() {
                         placeholder="Enter your ID here"
                         value={formData.userId}
                         onChange={handleChange}
-                        className={`${inputBase} ${theme === "dark" ? darkInput : lightInput} ${errors.userId && "border-red-500 focus:ring-red-500"}`}
+                        className={`w-full px-4 py-2 rounded-full border focus:outline-none focus:ring-2 transition 
+                            ${theme === "dark"
+                                ? "bg-dark-surface-bg text-white placeholder-dark-placeholder border-dark-surface-stroke focus:ring-dark-info"
+                                : "bg-white text-black placeholder-light-placeholder border-gray-300 focus:ring-light-info"}
+                        `}
                     />
-                    {isFieldValid("userId") && (
-                        <CheckCircle2 className="w-5 h-5 text-green-500 absolute right-3 top-9" />
-                    )}
-                    {errors.userId && (
-                        <p className="text-red-500 text-xs mt-1">{errors.userId}</p>
-                    )}
                 </div>
 
                 {/* Agent URL */}
-                <div className="relative">
+                <div>
                     <label htmlFor="agentUrl" className="block text-sm font-medium mb-1">
                         Agent URL
                     </label>
@@ -132,18 +147,16 @@ export default function Setup() {
                         placeholder="Enter your agent URL here"
                         value={formData.agentUrl}
                         onChange={handleChange}
-                        className={`${inputBase} ${theme === "dark" ? darkInput : lightInput} ${errors.agentUrl && "border-red-500 focus:ring-red-500"}`}
+                        className={`w-full px-4 py-2 rounded-full border focus:outline-none focus:ring-2 transition 
+                            ${theme === "dark"
+                                ? "bg-dark-surface-bg text-white placeholder-dark-placeholder border-dark-surface-stroke focus:ring-dark-info"
+                                : "bg-white text-black placeholder-light-placeholder border-gray-300 focus:ring-light-info"}
+                        `}
                     />
-                    {isFieldValid("agentUrl") && (
-                        <CheckCircle2 className="w-5 h-5 text-green-500 absolute right-3 top-9" />
-                    )}
-                    {errors.agentUrl && (
-                        <p className="text-red-500 text-xs mt-1">{errors.agentUrl}</p>
-                    )}
                 </div>
 
                 {/* Auth Token */}
-                <div className="relative">
+                <div>
                     <label htmlFor="authToken" className="block text-sm font-medium mb-1">
                         User Auth Token
                     </label>
@@ -154,29 +167,27 @@ export default function Setup() {
                         placeholder="Enter your user auth token here"
                         value={formData.authToken}
                         onChange={handleChange}
-                        className={`${inputBase} ${theme === "dark" ? darkInput : lightInput} ${errors.authToken && "border-red-500 focus:ring-red-500"}`}
+                        className={`w-full px-4 py-2 rounded-full border focus:outline-none focus:ring-2 transition 
+                            ${theme === "dark"
+                                ? "bg-dark-surface-bg text-white placeholder-dark-placeholder border-dark-surface-stroke focus:ring-dark-info"
+                                : "bg-white text-black placeholder-light-placeholder border-gray-300 focus:ring-light-info"}
+                        `}
                     />
-                    {isFieldValid("authToken") && (
-                        <CheckCircle2 className="w-5 h-5 text-green-500 absolute right-3 top-9" />
-                    )}
-                    {errors.authToken && (
-                        <p className="text-red-500 text-xs mt-1">{errors.authToken}</p>
-                    )}
                 </div>
 
                 {/* Continue Button */}
                 <button
                     type="submit"
-                    disabled={!isFormValid}
+                    disabled={!isFormValid || isSubmitting}
                     className={`w-full py-2 rounded-full font-semibold transition
-                        ${isFormValid
+                        ${isFormValid && !isSubmitting
                             ? theme === "dark"
                                 ? "bg-dark-button-bg text-dark-button-text hover:bg-dark-surface-stroke"
                                 : "bg-dark-button-bg text-light-button-text hover:bg-dark-surface-stroke"
                             : "bg-dark-button-muted text-dark-placeholder cursor-not-allowed"}
                     `}
                 >
-                    Continue
+                    {isSubmitting ? "Connecting..." : "Continue"}
                 </button>
             </form>
         </div>
