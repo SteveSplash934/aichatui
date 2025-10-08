@@ -11,7 +11,7 @@ export default function Chat() {
     const typedRef = useRef(null);
     const chatEndRef = useRef(null);
 
-    // TypedJS for welcome text
+    // Welcome text typing effect
     useEffect(() => {
         const typed = new Typed(typedRef.current, {
             strings: [
@@ -23,19 +23,19 @@ export default function Chat() {
         return () => typed.destroy();
     }, []);
 
-    // Scroll to bottom on new message
+    // Scroll to bottom when messages update
     useEffect(() => {
         chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages]);
 
     const handleSend = () => {
         if (!input.trim() && images.length === 0) return;
+
         const newMessage = { role: "user", text: input, images };
         setMessages((prev) => [...prev, newMessage]);
         setInput("");
         setImages([]);
 
-        // Simulate bot reply
         setTimeout(() => {
             const botMessage = {
                 role: "bot",
@@ -60,9 +60,14 @@ export default function Chat() {
 
     return (
         <div className="flex flex-col h-full w-full transition-colors duration-300 relative">
-            {/* Chat content container */}
+            {/* Chat content area */}
             <div
-                className={`flex-1 overflow-y-auto px-4 py-6 w-full max-w-2xl mx-auto ${messages.length === 0 ? "flex flex-col items-center justify-center" : ""
+                className={`flex-1 overflow-y-auto px-4 py-6 w-full max-w-2xl mx-auto scrollbar-thin ${theme === "dark"
+                    ? "scrollbar-thumb-gray-700 scrollbar-track-gray-900"
+                    : "scrollbar-thumb-gray-400 scrollbar-track-gray-100"
+                    } ${messages.length === 0
+                        ? "flex flex-col items-center justify-center"
+                        : ""
                     }`}
             >
                 {messages.length === 0 ? (
@@ -73,14 +78,13 @@ export default function Chat() {
                             className="text-lg md:text-xl font-semibold leading-relaxed"
                         ></h2>
 
-                        {/* Centered chat input (pre-chat) */}
+                        {/* Pre-chat input */}
                         <div
-                            className={`w-full flex items-center gap-3 rounded-full px-4 py-2 shadow-sm border max-w-2xl mx-auto ${theme === "dark"
-                                ? "border-dark-surface-stroke bg-dark-input-bg"
-                                : "border-gray-300 bg-white"
+                            className={`w-full flex items-center gap-3 rounded-full px-4 py-2 shadow-md max-w-2xl mx-auto ${theme === "dark"
+                                ? "border border-dark-surface-stroke bg-dark-input-bg"
+                                : "border border-gray-300 bg-white"
                                 }`}
                         >
-                            {/* Image upload */}
                             <label
                                 className={`p-2 rounded-full flex-shrink-0 cursor-pointer transition ${theme === "dark"
                                     ? "text-dark-button-text hover:bg-white hover:text-black bg-dark-surface-stroke"
@@ -126,10 +130,33 @@ export default function Chat() {
                                 <ArrowUp className="w-5 h-5" />
                             </button>
                         </div>
+                        {/* Image preview before sending */}
+                        {images.length > 0 && (
+                            <div className="flex flex-wrap gap-2 justify-center mt-3">
+                                {images.map((img, idx) => (
+                                    <div
+                                        key={idx}
+                                        className="relative w-20 h-20 rounded-lg overflow-hidden"
+                                    >
+                                        <img
+                                            src={img.previewUrl}
+                                            alt="preview"
+                                            className="object-cover w-full h-full"
+                                        />
+                                        <button
+                                            onClick={() => removeImage(idx)}
+                                            className="absolute top-1 right-1 bg-black bg-opacity-50 rounded-full p-0.5 text-white"
+                                        >
+                                            <X size={14} />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 ) : (
-                    // Chat messages scrollable area
-                    <div className="flex flex-col space-y-4 pb-28">
+                    // Chat messages area
+                    <div className="flex flex-col space-y-4 pb-32">
                         {messages.map((msg, i) => (
                             <div
                                 key={i}
@@ -166,7 +193,7 @@ export default function Chat() {
                                                 key={idx}
                                                 src={img.previewUrl}
                                                 alt="sent"
-                                                className="mt-2 rounded-lg w-28 h-28 object-cover"
+                                                className="mt-2 rounded-lg w-24 h-24 object-cover"
                                             />
                                         ))}
                                 </div>
@@ -177,15 +204,15 @@ export default function Chat() {
                 )}
             </div>
 
-            {/* Floating chat input after chat starts */}
+            {/* Floating input after chat starts */}
             {messages.length > 0 && (
                 <div
                     className={`fixed bottom-12 left-1/2 transform -translate-x-1/2 w-full max-w-2xl px-4`}
                 >
                     <div
-                        className={`w-full flex items-center gap-3 rounded-full px-4 py-2 shadow-md ${theme === "dark"
-                            ? "border border-dark-surface-stroke bg-dark-input-bg"
-                            : "border border-gray-300 bg-white"
+                        className={`w-full flex items-center gap-3 rounded-full px-4 py-2 shadow-lg border ${theme === "dark"
+                            ? "border-dark-surface-stroke bg-dark-input-bg"
+                            : "border-gray-300 bg-white"
                             }`}
                     >
                         <label
