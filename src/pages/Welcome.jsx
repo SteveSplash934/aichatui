@@ -17,7 +17,7 @@ export default function Welcome() {
 
                 {/* Subtitle */}
                 <p className="mt-3 text-base md:text-lg font-medium text-light-placeholder dark:text-dark-placeholder">
-                    Please enter your setup info to continue
+                    Prepare to experience seamless, context-aware AI conversations.
                 </p>
 
                 {/* CTA */}

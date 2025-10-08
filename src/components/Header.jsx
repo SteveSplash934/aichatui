@@ -1,20 +1,32 @@
 import { Sun, Moon, MessageSquare } from "lucide-react";
 import { useTheme } from "../hook/useTheme";
-import { Link, useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 export default function Header() {
     const { theme, toggleTheme } = useTheme();
     const location = useLocation();
+    const navigate = useNavigate();
 
     const isChatPage = location.pathname === "/chat";
 
+    const handleLogoClick = () => {
+        const sessionToken = localStorage.getItem("agent_session_token");
+        if (sessionToken) {
+            navigate("/chat");
+        } else {
+            navigate("/");
+        }
+    };
+
     return (
-        <header className="flex justify-between items-center px-6 py-3  transition-colors">
-            {/* Logo  Home link */}
-            <Link to="/welcome" className="flex items-center gap-2">
+        <header className="flex justify-between items-center px-6 py-3 transition-colors">
+            <button
+                onClick={handleLogoClick}
+                className="flex items-center gap-2 focus:outline-none"
+            >
                 <MessageSquare className="w-6 h-6 text-light-accents-info dark:text-dark-accents-info" />
                 <h1 className="font-heading text-lg">LLM Chat UI</h1>
-            </Link>
+            </button>
 
             {/* Theme toggle icon */}
             <button
