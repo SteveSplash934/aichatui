@@ -117,7 +117,6 @@ export default function Setup() {
         setAlert(null);
 
         try {
-            // POST with only user_id and auth_token in JSON body (no Authorization header)
             const response = await fetch(`${formData.agentUrl.replace(/\/+$/, "")}/connect`, {
                 method: "POST",
                 headers: {
@@ -129,7 +128,6 @@ export default function Setup() {
                 }),
             });
 
-            // try parse JSON safely
             let res;
             try {
                 res = await response.json();
@@ -139,7 +137,7 @@ export default function Setup() {
 
             if (!response.ok) {
                 // prefer server message if present
-                const serverMsg = res?.message || res?.error || response.statusText || "Failed to connect to agent";
+                const serverMsg = res?.message || res?.error || response.statusText || "Failed to connect to agent, make sure agent is corrent or alive and try again";
                 showAlert("error", `Connection Failed: ${serverMsg}`);
                 return;
             }
@@ -149,15 +147,8 @@ export default function Setup() {
             localStorage.setItem("user_auth_token", formData.authToken);
             localStorage.setItem("agent_url", formData.agentUrl);
 
-            // If server issued a token (agent session token), try to store it safely
-            const issuedToken =
-                res?.token ||
-                res?.access_token ||
-                res?.agent_token ||
-                res?.session_token ||
-                res?.agent_access_token ||
-                res?.agent_session_token ||
-                null;
+            // Store the server agent token safely!
+            const issuedToken = res?.agent_session_token || null;
 
             if (issuedToken) {
                 localStorage.setItem("agent_session_token", issuedToken);
