@@ -155,7 +155,7 @@ export default function Chat() {
                                             ? "bg-dark-button-bg text-light-button-text"
                                             : "bg-black text-white"
                                         : theme === "dark"
-                                            ? "bg-dark-surface-stroke text-dark-primary"
+                                            ? "bg-dark-surface-bg text-dark-primary"
                                             : "bg-gray-100 text-black"
                                         }`}
                                 >

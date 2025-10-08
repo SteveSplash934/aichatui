@@ -19,7 +19,9 @@ export default function Header() {
     };
 
     return (
-        <header className="flex justify-between items-center px-6 py-3 transition-colors">
+        <header className={`flex justify-between items-center px-6 py-3 transition-colors
+    sticky top-0 z-50 bg-light-bg/80 dark:bg-dark-bg/80 backdrop-blur-md md:static
+  `}>
             <button
                 onClick={handleLogoClick}
                 className="flex items-center gap-2 focus:outline-none"
