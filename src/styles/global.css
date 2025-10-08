@@ -22,7 +22,7 @@
   --color-light-placeholder: #999999;
 
   /* Dark Theme */
-  --color-dark-bg: #000807;
+  --color-dark-bg: #0d0d0d;
   --color-dark-button-text: #F5F5F5;
   --color-dark-button-bg: #111111;
   --color-dark-button-muted: #333333;
@@ -61,4 +61,30 @@
     font-family: var(--font-caption);
     font-size: 0.85rem;
   }
+
+  /* Add this to your global styles (e.g. index.css or App.css) */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    border-radius: 9999px;
+    background: #d1d5db;
+    /* Light mode default */
+  }
+
+  .dark ::-webkit-scrollbar-thumb {
+    background: #3f3f46;
+    /* Dark mode */
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af;
+    /* Slightly darker on hover */
+  }
+
 }

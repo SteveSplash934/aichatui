@@ -25,7 +25,7 @@ export default function Header() {
                 className="flex items-center gap-2 focus:outline-none"
             >
                 <MessageSquare className="w-6 h-6 text-light-accents-info dark:text-dark-accents-info" />
-                <h1 className="font-heading text-lg">LLM Chat UI</h1>
+                <h1 className="font-heading text-lg">AI CHAT</h1>
             </button>
 
             {/* Theme toggle icon */}
