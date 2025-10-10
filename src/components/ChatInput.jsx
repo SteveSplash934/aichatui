@@ -1,6 +1,8 @@
 // src/components/ChatInput.jsx
 import { useRef, useEffect } from "react";
 import { ArrowUp, Image as ImageIcon, X } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+
 
 export default function ChatInput({
     theme,
@@ -14,6 +16,19 @@ export default function ChatInput({
     placeholder,
     sendEnabled = true,
 }) {
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        const userId = localStorage.getItem("user_id");
+        const authToken = localStorage.getItem("user_auth_token");
+        const agentUrl = localStorage.getItem("agent_url");
+        const agentSessionToken = localStorage.getItem("agent_session_token");
+
+        if (!userId || !authToken || !agentUrl || !agentSessionToken) {
+            navigate("/");
+        }
+    }, []);
+
     const fileInputRef = useRef(null);
     const textareaRef = useRef(null);
 
