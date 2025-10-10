@@ -16,9 +16,9 @@ export default function Chat() {
         const userId = localStorage.getItem("user_id");
         const authToken = localStorage.getItem("user_auth_token");
         const agentUrl = localStorage.getItem("agent_url");
-        const agentSessionToken = localStorage.getItem("agent_session_token");
+        const userChatSessionToken = localStorage.getItem("user_chat_session_token");
 
-        if (!userId || !authToken || !agentUrl || !agentSessionToken) {
+        if (!userId || !authToken || !agentUrl || !userChatSessionToken) {
             navigate("/");
         }
     }, []);

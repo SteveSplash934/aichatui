@@ -10,7 +10,7 @@ export default function Header() {
     const isChatPage = location.pathname === "/chat";
 
     const handleLogoClick = () => {
-        const sessionToken = localStorage.getItem("agent_session_token");
+        const sessionToken = localStorage.getItem("user_chat_session_token");
         if (sessionToken) {
             navigate("/chat");
         } else {
@@ -23,7 +23,7 @@ export default function Header() {
         localStorage.removeItem("user_id");
         localStorage.removeItem("user_auth_token");
         localStorage.removeItem("agent_url");
-        localStorage.removeItem("agent_session_token");
+        localStorage.removeItem("user_chat_session_token");
 
         // Redirect to home/login page
         navigate("/");

@@ -148,10 +148,10 @@ export default function Setup() {
             localStorage.setItem("agent_url", formData.agentUrl);
 
             // Store the server agent token safely!
-            const issuedToken = res?.agent_session_token || null;
+            const issuedToken = res?.user_chat_session_token || null;
 
             if (issuedToken) {
-                localStorage.setItem("agent_session_token", issuedToken);
+                localStorage.setItem("user_chat_session_token", issuedToken);
             }
 
             // success alert with possible returned user name
