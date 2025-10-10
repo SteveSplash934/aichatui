@@ -1,3 +1,4 @@
+// src/pages/Chat.jsx
 import { useEffect, useRef, useState } from "react";
 import Typed from "typed.js";
 import { X, Bot } from "lucide-react";
