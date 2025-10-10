@@ -1,17 +1,21 @@
+// src/pages/Chat.jsx
 import { useEffect, useRef, useState } from "react";
 import Typed from "typed.js";
 import { ArrowUp, Image as ImageIcon, X, Bot } from "lucide-react";
 import { useTheme } from "../hook/useTheme";
+import useGlobalDragDrop from "../hook/useGlobalDragDrop";
 
 export default function Chat() {
     const { theme } = useTheme();
-    const [messages, setMessages] = useState([]);
+    const [messages, setMessages] = useState([]); // { role: 'user'|'bot', text, images: [{ previewUrl }] }
     const [input, setInput] = useState("");
-    const [images, setImages] = useState([]);
+    const [previews, setPreviews] = useState([]);
     const typedRef = useRef(null);
     const chatEndRef = useRef(null);
+    const fileInputRef = useRef(null);
+    const textareaRef = useRef(null);
 
-    // Welcome text typing effect
+    // Typed.js intro
     useEffect(() => {
         const typed = new Typed(typedRef.current, {
             strings: [
@@ -23,151 +27,259 @@ export default function Chat() {
         return () => typed.destroy();
     }, []);
 
-    // Scroll to bottom when messages update
+    // Drag & drop (global)
+    const { isDragging } = useGlobalDragDrop((files) => {
+        const imageFiles = files.filter((f) => f.type.startsWith("image/"));
+        const newPreviews = imageFiles.map((f) => ({
+            file: f,
+            previewUrl: URL.createObjectURL(f),
+        }));
+        setPreviews((p) => [...p, ...newPreviews]);
+    });
+
+    // Scroll to bottom when messages change
     useEffect(() => {
         chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages]);
 
-    const handleSend = () => {
-        if (!input.trim() && images.length === 0) return;
-
-        const newMessage = { role: "user", text: input, images };
-        setMessages((prev) => [...prev, newMessage]);
-        setInput("");
-        setImages([]);
-
-        setTimeout(() => {
-            const botMessage = {
-                role: "bot",
-                text: "Thanks for your message. I'll get back to you shortly.",
+    // Resize image helper (reduces file before preview)
+    const resizeImage = (file, maxDimension = 600) =>
+        new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+                const img = new Image();
+                img.onload = () => {
+                    const scale = Math.min(
+                        maxDimension / img.width,
+                        maxDimension / img.height,
+                        1
+                    );
+                    const w = Math.round(img.width * scale);
+                    const h = Math.round(img.height * scale);
+                    const canvas = document.createElement("canvas");
+                    canvas.width = w;
+                    canvas.height = h;
+                    const ctx = canvas.getContext("2d");
+                    ctx.drawImage(img, 0, 0, w, h);
+                    canvas.toBlob(
+                        (blob) => {
+                            if (!blob) {
+                                resolve(URL.createObjectURL(file));
+                                return;
+                            }
+                            resolve(URL.createObjectURL(blob));
+                        },
+                        "image/jpeg",
+                        0.85
+                    );
+                };
+                img.src = reader.result;
             };
-            setMessages((prev) => [...prev, botMessage]);
-        }, 800);
-    };
+            reader.readAsDataURL(file);
+        });
 
-    const handleImageUpload = (e) => {
-        const files = Array.from(e.target.files);
-        const previews = files.map((file) => ({
-            file,
-            previewUrl: URL.createObjectURL(file),
+    // Handle file input
+    const handleFileInput = (e) => {
+        const files = Array.from(e.target.files || []);
+        if (files.length === 0) return;
+        const newPreviews = files.map((f) => ({
+            file: f,
+            previewUrl: URL.createObjectURL(f),
         }));
-        setImages((prev) => [...prev, ...previews]);
+        setPreviews((p) => [...p, ...newPreviews]);
+        e.target.value = "";
     };
 
-    const removeImage = (index) => {
-        setImages((prev) => prev.filter((_, i) => i !== index));
+    // Handle drop inside chat input (optional local drop)
+    const handleDrop = (e) => {
+        e.preventDefault();
+        const files = Array.from(e.dataTransfer.files || []).filter((f) =>
+            f.type.startsWith("image/")
+        );
+        if (files.length === 0) return;
+        const newPreviews = files.map((f) => ({
+            file: f,
+            previewUrl: URL.createObjectURL(f),
+        }));
+        setPreviews((p) => [...p, ...newPreviews]);
     };
+
+    const removePreview = (index) => {
+        setPreviews((p) => p.filter((_, i) => i !== index));
+    };
+
+    // Send message
+    const handleSend = async () => {
+        if (!input.trim() && previews.length === 0) return;
+
+        const reducedImages = await Promise.all(
+            previews.map(async (p) => {
+                try {
+                    const resized = await resizeImage(p.file);
+                    return { previewUrl: resized };
+                } catch {
+                    return { previewUrl: p.previewUrl };
+                }
+            })
+        );
+
+        const userMsg = {
+            role: "user",
+            text: input.trim(),
+            images: reducedImages,
+            time: Date.now(),
+        };
+
+        setMessages((prev) => [...prev, userMsg]);
+        setInput("");
+        previews.forEach((p) => URL.revokeObjectURL(p.previewUrl));
+        setPreviews([]);
+
+        // Simulated bot reply
+        setTimeout(() => {
+            const botMsg = {
+                role: "bot",
+                text: "Got it! I’ll review and get back to you shortly.",
+                images: [],
+            };
+            setMessages((prev) => [...prev, botMsg]);
+        }, 700);
+    };
+
+    // Auto-resize textarea height
+    useEffect(() => {
+        const ta = textareaRef.current;
+        if (!ta) return;
+        ta.style.height = "auto";
+        ta.style.height = `${Math.min(ta.scrollHeight, 160)}px`;
+    }, [input]);
+
+    // Theme classes
+    const inputBg = theme === "dark" ? "bg-dark-input-bg" : "bg-white";
+    const borderStroke =
+        theme === "dark" ? "border-dark-surface-stroke" : "border-gray-300";
+    const placeholder =
+        theme === "dark" ? "placeholder-dark-placeholder" : "placeholder-gray-500";
+    const sendEnabled = input.trim() || previews.length > 0;
 
     return (
-        <div className="flex flex-col h-full w-full transition-colors duration-300 relative">
-            {/* Chat content area */}
+        <div className="flex flex-col h-full w-full relative transition-colors duration-300">
+            {/* Global drag overlay */}
+            {isDragging && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+                    <div className="bg-white dark:bg-dark-surface px-6 py-4 rounded-2xl shadow-lg border dark:border-gray-700 border-gray-300 text-center">
+                        <p className="text-lg font-semibold text-gray-800 dark:text-gray-100">
+                            Drop your images here to upload
+                        </p>
+                    </div>
+                </div>
+            )}
+
+            {/* Scrollable chat area */}
             <div
-                className={`flex-1 overflow-y-auto px-4 py-6 w-full max-w-2xl mx-auto scrollbar-thin ${theme === "dark"
+                className={`flex-1 overflow-y-auto px-4 py-6 w-full max-w-3xl mx-auto ${theme === "dark"
                     ? "scrollbar-thumb-gray-700 scrollbar-track-gray-900"
                     : "scrollbar-thumb-gray-400 scrollbar-track-gray-100"
-                    } ${messages.length === 0
-                        ? "flex flex-col items-center justify-center"
-                        : ""
                     }`}
             >
                 {messages.length === 0 ? (
-                    // Pre-chat welcome screen
-                    <div className="flex flex-col items-center text-center w-full space-y-6">
+                    // Pre-chat screen
+                    <div className="min-h-[60vh] flex flex-col items-center justify-center gap-6">
                         <h2
                             ref={typedRef}
-                            className="text-lg md:text-xl font-semibold leading-relaxed"
-                        ></h2>
-
-                        {/* Pre-chat input */}
+                            className="text-center text-2xl md:text-3xl font-semibold leading-relaxed max-w-xl"
+                        />
                         <div
-                            className={`w-full flex items-center gap-3 rounded-full px-4 py-2 shadow-md max-w-2xl mx-auto ${theme === "dark"
-                                ? "border border-dark-surface-stroke bg-dark-input-bg"
-                                : "border border-gray-300 bg-white"
-                                }`}
+                            onDragOver={(e) => e.preventDefault()}
+                            onDrop={handleDrop}
+                            className={`w-full max-w-3xl mx-auto px-4 py-3 rounded-full ${inputBg} border ${borderStroke} shadow-md`}
                         >
-                            <label
-                                className={`p-2 rounded-full flex-shrink-0 cursor-pointer transition ${theme === "dark"
-                                    ? "text-dark-button-text hover:bg-white hover:text-black bg-dark-surface-stroke"
-                                    : "text-gray-600 bg-gray-200 hover:bg-black hover:text-white"
-                                    }`}
-                            >
-                                <ImageIcon className="w-5 h-5" />
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    multiple
-                                    className="hidden"
-                                    onChange={handleImageUpload}
+                            <div className="flex items-end gap-3">
+                                <label
+                                    className={`p-3 rounded-full flex-shrink-0 cursor-pointer transition ${theme === "dark"
+                                        ? "bg-dark-surface-stroke text-dark-button-text hover:bg-white hover:text-black"
+                                        : "bg-gray-200 text-black hover:bg-black hover:text-white"
+                                        }`}
+                                >
+                                    <ImageIcon className="w-5 h-5" />
+                                    <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        accept="image/*"
+                                        multiple
+                                        className="hidden"
+                                        onChange={handleFileInput}
+                                    />
+                                </label>
+
+                                <textarea
+                                    ref={textareaRef}
+                                    rows={1}
+                                    value={input}
+                                    onChange={(e) => setInput(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter" && !e.shiftKey) {
+                                            e.preventDefault();
+                                            handleSend();
+                                        }
+                                    }}
+                                    placeholder="Ask anything to start chat"
+                                    className={`flex-1 resize-none bg-transparent border-none focus:outline-none text-sm md:text-base ${placeholder}`}
                                 />
-                            </label>
 
-                            <input
-                                type="text"
-                                placeholder="Ask anything to start chat"
-                                className={`flex-1 bg-transparent focus:outline-none text-sm md:text-base ${theme === "dark"
-                                    ? "placeholder-dark-placeholder"
-                                    : "placeholder-gray-500"
-                                    }`}
-                                value={input}
-                                onChange={(e) => setInput(e.target.value)}
-                                onKeyDown={(e) =>
-                                    e.key === "Enter" && handleSend()
-                                }
-                            />
-
-                            <button
-                                onClick={handleSend}
-                                disabled={!input.trim() && images.length === 0}
-                                className={`p-2 rounded-full flex-shrink-0 transition ${input.trim() || images.length > 0
-                                    ? theme === "dark"
-                                        ? "bg-white text-black hover:scale-105"
-                                        : "bg-black text-white hover:scale-105"
-                                    : theme === "dark"
-                                        ? "bg-dark-surface-stroke text-dark-placeholder cursor-not-allowed"
-                                        : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                                    }`}
-                            >
-                                <ArrowUp className="w-5 h-5" />
-                            </button>
-                        </div>
-                        {/* Image preview before sending */}
-                        {images.length > 0 && (
-                            <div className="flex flex-wrap gap-2 justify-center mt-3">
-                                {images.map((img, idx) => (
-                                    <div
-                                        key={idx}
-                                        className="relative w-20 h-20 rounded-lg overflow-hidden"
-                                    >
-                                        <img
-                                            src={img.previewUrl}
-                                            alt="preview"
-                                            className="object-cover w-full h-full"
-                                        />
-                                        <button
-                                            onClick={() => removeImage(idx)}
-                                            className="absolute top-1 right-1 bg-black bg-opacity-50 rounded-full p-0.5 text-white"
-                                        >
-                                            <X size={14} />
-                                        </button>
-                                    </div>
-                                ))}
+                                <button
+                                    onClick={handleSend}
+                                    disabled={!sendEnabled}
+                                    className={`p-3 rounded-full flex-shrink-0 transition ${sendEnabled
+                                        ? theme === "dark"
+                                            ? "bg-white text-black"
+                                            : "bg-black text-white"
+                                        : theme === "dark"
+                                            ? "bg-dark-surface-stroke text-dark-placeholder cursor-not-allowed"
+                                            : "bg-gray-300 text-gray-400 cursor-not-allowed"
+                                        }`}
+                                >
+                                    <ArrowUp className="w-5 h-5" />
+                                </button>
                             </div>
-                        )}
+
+                            {/* Image previews before send */}
+                            {previews.length > 0 && (
+                                <div className="mt-3 flex flex-wrap gap-2 justify-center">
+                                    {previews.map((p, i) => (
+                                        <div
+                                            key={i}
+                                            className="relative w-20 h-20 rounded-lg overflow-hidden border"
+                                        >
+                                            <img
+                                                src={p.previewUrl}
+                                                alt={`preview-${i}`}
+                                                className="w-full h-full object-cover"
+                                            />
+                                            <button
+                                                onClick={() => removePreview(i)}
+                                                className="absolute top-1 right-1 bg-black bg-opacity-60 rounded-full p-0.5 text-white"
+                                            >
+                                                <X size={14} />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     </div>
                 ) : (
-                    // Chat messages area
-                    <div className="flex flex-col space-y-4 pb-32">
-                        {messages.map((msg, i) => (
+                    // Chat messages
+                    <div className="flex flex-col gap-4 pb-32">
+                        {messages.map((m, idx) => (
                             <div
-                                key={i}
-                                className={`flex items-start gap-2 ${msg.role === "user"
-                                    ? "justify-end flex-row"
-                                    : "justify-start"
+                                key={idx}
+                                className={`flex items-start gap-3 ${m.role === "user" ? "justify-end" : "justify-start"
                                     }`}
                             >
-                                {msg.role === "bot" && (
+                                {m.role === "bot" && (
                                     <div
-                                        className={`w-8 h-8 flex items-center justify-center rounded-full ${theme === "dark"
+                                        className={`w-9 h-9 flex items-center justify-center rounded-full ${theme === "dark"
                                             ? "bg-dark-surface-stroke text-dark-button-text"
                                             : "bg-gray-200 text-black"
                                             }`}
@@ -177,7 +289,7 @@ export default function Chat() {
                                 )}
 
                                 <div
-                                    className={`px-4 py-2 rounded-2xl max-w-[80%] break-words ${msg.role === "user"
+                                    className={`rounded-2xl px-4 py-2 max-w-[78%] break-words ${m.role === "user"
                                         ? theme === "dark"
                                             ? "bg-dark-button-bg text-light-button-text"
                                             : "bg-black text-white"
@@ -186,17 +298,24 @@ export default function Chat() {
                                             : "bg-gray-100 text-black"
                                         }`}
                                 >
-                                    {msg.text && <p>{msg.text}</p>}
-                                    {msg.images &&
-                                        msg.images.map((img, idx) => (
-                                            <img
-                                                key={idx}
-                                                src={img.previewUrl}
-                                                alt="sent"
-                                                className="mt-2 rounded-lg w-24 h-24 object-cover"
-                                            />
-                                        ))}
+                                    {m.text && (
+                                        <p className="whitespace-pre-wrap">{m.text}</p>
+                                    )}
+                                    {m.images && m.images.length > 0 && (
+                                        <div className="mt-3 flex flex-wrap gap-2">
+                                            {m.images.map((img, i) => (
+                                                <img
+                                                    key={i}
+                                                    src={img.previewUrl}
+                                                    alt={`sent-${i}`}
+                                                    className="rounded-lg w-40 h-40 object-cover"
+                                                />
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
+
+                                {m.role === "user" && <div className="w-9 h-9" />}
                             </div>
                         ))}
                         <div ref={chatEndRef} />
@@ -204,59 +323,86 @@ export default function Chat() {
                 )}
             </div>
 
-            {/* Floating input after chat starts */}
+            {/* Floating bottom input */}
             {messages.length > 0 && (
-                <div
-                    className={`fixed bottom-12 left-1/2 transform -translate-x-1/2 w-full max-w-2xl px-4`}
-                >
+                <div className="fixed left-0 right-0 bottom-12 flex justify-center px-4 pointer-events-none">
                     <div
-                        className={`w-full flex items-center gap-3 rounded-full px-4 py-2 shadow-lg border ${theme === "dark"
-                            ? "border-dark-surface-stroke bg-dark-input-bg"
-                            : "border-gray-300 bg-white"
-                            }`}
+                        className={`pointer-events-auto w-full max-w-3xl ${inputBg} border ${borderStroke} rounded-full shadow-lg px-4 py-3`}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={handleDrop}
                     >
-                        <label
-                            className={`p-2 rounded-full flex-shrink-0 cursor-pointer transition ${theme === "dark"
-                                ? "text-dark-button-text hover:bg-white hover:text-black bg-dark-surface-stroke"
-                                : "text-gray-600 bg-gray-200 hover:bg-black hover:text-white"
-                                }`}
-                        >
-                            <ImageIcon className="w-5 h-5" />
-                            <input
-                                type="file"
-                                accept="image/*"
-                                multiple
-                                className="hidden"
-                                onChange={handleImageUpload}
+                        <div className="flex items-end gap-3">
+                            <label
+                                className={`p-2 rounded-full flex-shrink-0 cursor-pointer transition ${theme === "dark"
+                                    ? "bg-dark-surface-stroke text-dark-button-text hover:bg-white hover:text-black"
+                                    : "bg-gray-200 text-black hover:bg-black hover:text-white"
+                                    }`}
+                            >
+                                <ImageIcon className="w-5 h-5" />
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    accept="image/*"
+                                    multiple
+                                    className="hidden"
+                                    onChange={handleFileInput}
+                                />
+                            </label>
+
+                            <textarea
+                                ref={textareaRef}
+                                rows={1}
+                                value={input}
+                                onChange={(e) => setInput(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter" && !e.shiftKey) {
+                                        e.preventDefault();
+                                        handleSend();
+                                    }
+                                }}
+                                placeholder="Type your message..."
+                                className={`flex-1 resize-none bg-transparent border-none focus:outline-none text-sm md:text-base ${placeholder}`}
                             />
-                        </label>
 
-                        <input
-                            type="text"
-                            placeholder="Type your message..."
-                            className={`flex-1 bg-transparent focus:outline-none text-sm md:text-base ${theme === "dark"
-                                ? "placeholder-dark-placeholder"
-                                : "placeholder-gray-500"
-                                }`}
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                        />
+                            <button
+                                onClick={handleSend}
+                                disabled={!sendEnabled}
+                                className={`p-3 rounded-full flex-shrink-0 transition ${sendEnabled
+                                    ? theme === "dark"
+                                        ? "bg-white text-black"
+                                        : "bg-black text-white"
+                                    : theme === "dark"
+                                        ? "bg-dark-surface-stroke text-dark-placeholder cursor-not-allowed"
+                                        : "bg-gray-300 text-gray-400 cursor-not-allowed"
+                                    }`}
+                            >
+                                <ArrowUp className="w-5 h-5" />
+                            </button>
+                        </div>
 
-                        <button
-                            onClick={handleSend}
-                            disabled={!input.trim() && images.length === 0}
-                            className={`p-2 rounded-full flex-shrink-0 transition ${input.trim() || images.length > 0
-                                ? theme === "dark"
-                                    ? "bg-white text-black hover:scale-105"
-                                    : "bg-black text-white hover:scale-105"
-                                : theme === "dark"
-                                    ? "bg-dark-surface-stroke text-dark-placeholder cursor-not-allowed"
-                                    : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                                }`}
-                        >
-                            <ArrowUp className="w-5 h-5" />
-                        </button>
+                        {/* show thumbnails when user has selected images */}
+                        {previews.length > 0 && (
+                            <div className="mt-3 flex flex-wrap gap-2">
+                                {previews.map((p, i) => (
+                                    <div
+                                        key={i}
+                                        className="relative w-20 h-20 rounded-lg overflow-hidden border"
+                                    >
+                                        <img
+                                            src={p.previewUrl}
+                                            alt={`preview-${i}`}
+                                            className="w-full h-full object-cover"
+                                        />
+                                        <button
+                                            onClick={() => removePreview(i)}
+                                            className="absolute top-1 right-1 bg-black bg-opacity-60 rounded-full p-0.5 text-white"
+                                        >
+                                            <X size={14} />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
             )}

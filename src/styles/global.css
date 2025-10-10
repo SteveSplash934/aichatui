@@ -87,4 +87,23 @@
     /* Slightly darker on hover */
   }
 
+  /* Nice thin themed scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    border-radius: 6px;
+    background: rgba(100, 100, 100, 0.5);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(100, 100, 100, 0.8);
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+
 }

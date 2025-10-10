@@ -53,7 +53,7 @@ export default function Setup() {
         const v = (value || "").toString().trim();
         if (!v) return "This field is required";
 
-        if (name === "userId" || name === "authToken") {
+        if (name === "userId") {
             if (!uuidv4Regex.test(v)) return "Must be a valid UUID v4";
         }
 
@@ -117,14 +117,14 @@ export default function Setup() {
         setAlert(null);
 
         try {
-            const response = await fetch(`${formData.agentUrl.replace(/\/+$/, "")}/connect`, {
+            const response = await fetch(`${formData.agentUrl.replace(/\/+$/, "")}`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
                     user_id: formData.userId,
-                    auth_token: formData.authToken,
+                    user_auth_token: formData.authToken,
                 }),
             });
 
@@ -236,7 +236,7 @@ export default function Setup() {
                 </div>
 
                 {/* Agent URL */}
-                <div className="relative">
+                <div className="relative mt-2">
                     <label htmlFor="agentUrl" className="block text-sm font-medium mb-1">
                         Agent URL
                     </label>
@@ -258,7 +258,7 @@ export default function Setup() {
                 </div>
 
                 {/* Auth Token */}
-                <div className="relative">
+                <div className="relative mt-2">
                     <label htmlFor="authToken" className="block text-sm font-medium mb-1">
                         User Auth Token
                     </label>
@@ -283,7 +283,7 @@ export default function Setup() {
                 <button
                     type="submit"
                     disabled={!isFormValid || isSubmitting}
-                    className={`w-full py-2 rounded-full font-semibold transition
+                    className={`w-full py-2 rounded-full font-semibold transition mt-6
                         ${isFormValid && !isSubmitting
                             ? theme === "dark"
                                 ? "bg-dark-button-bg text-dark-button-text hover:bg-dark-surface-stroke"
