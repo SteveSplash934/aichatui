@@ -5,9 +5,24 @@ import { X, Bot } from "lucide-react";
 import { useTheme } from "../hook/useTheme";
 import useGlobalDragDrop from "../hook/useGlobalDragDrop";
 import ChatInput from "../components/ChatInput";
+import { useNavigate } from "react-router-dom";
 
 export default function Chat() {
     const { theme } = useTheme();
+
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        const userId = localStorage.getItem("user_id");
+        const authToken = localStorage.getItem("user_auth_token");
+        const agentUrl = localStorage.getItem("agent_url");
+        const agentSessionToken = localStorage.getItem("agent_session_token");
+
+        if (!userId || !authToken || !agentUrl || !agentSessionToken) {
+            navigate("/");
+        }
+    }, []);
+
     const [messages, setMessages] = useState([]); // { role, text, images }
     const [input, setInput] = useState("");
     const [previews, setPreviews] = useState([]);
