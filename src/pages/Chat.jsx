@@ -11,18 +11,6 @@ export default function Chat() {
     const { theme } = useTheme();
 
     const navigate = useNavigate();
-
-    useEffect(() => {
-        const userId = localStorage.getItem("user_id");
-        const authToken = localStorage.getItem("user_auth_token");
-        const agentUrl = localStorage.getItem("agent_url");
-        const userChatSessionToken = localStorage.getItem("user_chat_session_token");
-
-        if (!userId || !authToken || !agentUrl || !userChatSessionToken) {
-            navigate("/");
-        }
-    }, []);
-
     const [messages, setMessages] = useState([]); // { role, text, images, isTyping, id }
     const [input, setInput] = useState("");
     const [previews, setPreviews] = useState([]);

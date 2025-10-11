@@ -7,6 +7,14 @@ export default function Login() {
     const { theme } = useTheme();
     const navigate = useNavigate();
 
+    useEffect(() => {
+        const agentUrl = localStorage.getItem("agent_url");
+        if (!agentUrl || agentUrl.trim() === "") {
+            navigate("/setup", { replace: true });
+        }
+    }, [navigate]);
+
+
     const [formData, setFormData] = useState({
         email: "",
         password: "",
@@ -97,7 +105,9 @@ export default function Login() {
         setAlert(null);
 
         try {
-            const response = await fetch("/connect", {
+            const agentUrl = localStorage.getItem("agent_url");
+
+            const response = await fetch(`${agentUrl}/api/v1/auth/login`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -121,8 +131,22 @@ export default function Login() {
                 return;
             }
 
-            showAlert("success", `Welcome back, ${res?.user?.firstname || "User"}!`);
-            setTimeout(() => navigate("/chat"), 1600);
+            // ✅ Save temp_token to localStorage
+            if (res?.temp_token) {
+                localStorage.setItem("temp_token", res.temp_token);
+            }
+
+            if (formData.email) {
+                localStorage.setItem("email", formData.email);
+            }
+
+            // ✅ Set a secure cookie with SameSite=Lax and 15-minute expiry
+            document.cookie = `allow_verification=true; max-age=${15 * 60}; path=/; SameSite=Lax`;
+
+            showAlert("success", `Welcome back, ${formData.email}!`);
+
+            // ✅ Redirect to /verify page
+            setTimeout(() => navigate("/verify"), 1600);
 
         } catch (err) {
             showAlert("error", `Login Failed: ${err?.message || String(err)}`);
@@ -130,6 +154,7 @@ export default function Login() {
             setIsSubmitting(false);
         }
     };
+
 
     const inputBase = `w-full px-4 py-2 rounded-full border focus:outline-none focus:ring-2 pr-10 transition`;
     const lightInput = `bg-white text-black placeholder-light-placeholder border-gray-300 focus:ring-light-info`;
@@ -222,15 +247,23 @@ export default function Login() {
                     type="submit"
                     disabled={!isFormValid || isSubmitting}
                     className={`w-full py-2 rounded-full font-semibold transition mt-6
-                        ${isFormValid && !isSubmitting
+      ${isFormValid && !isSubmitting
                             ? theme === "dark"
                                 ? "bg-dark-button-bg text-dark-button-text hover:bg-dark-surface-stroke"
                                 : "bg-dark-button-bg text-light-button-text hover:bg-dark-surface-stroke"
-                            : "bg-dark-button-muted text-dark-placeholder cursor-not-allowed"}
-                    `}
+                            : "bg-dark-button-muted text-dark-placeholder cursor-not-allowed"}`}
                 >
-                    {isSubmitting ? "Connecting..." : "Login"}
+                    {isSubmitting ? (
+                        <div className="flex items-center justify-center gap-2">
+                            <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+
+                            {/* <span>Login in</span> */}
+                        </div>
+                    ) : (
+                        "Login"
+                    )}
                 </button>
+
             </form>
         </div>
     );

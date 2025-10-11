@@ -5,6 +5,7 @@ import Setup from "../pages/Login";
 import Chat from "../pages/Chat";
 import NotFound from "../pages/NotFound";
 import AgentSetup from "../pages/AgentSetup";
+import Verify from "../pages/Verify";
 
 export default function AppRoutes() {
     return (
@@ -26,6 +27,14 @@ export default function AppRoutes() {
                 element={
                     <MainLayout>
                         <Setup />
+                    </MainLayout>
+                }
+            />
+            <Route
+                path="/verify"
+                element={
+                    <MainLayout>
+                        <Verify />
                     </MainLayout>
                 }
             />
