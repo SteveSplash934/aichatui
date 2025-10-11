@@ -1,6 +1,8 @@
 import { Sun, Moon, MessageSquare, LogOut } from "lucide-react";
 import { useTheme } from "../hook/useTheme";
 import { useLocation, useNavigate } from "react-router-dom";
+import toast from 'react-hot-toast';
+
 
 const clearLocalStorageExceptTheme = () => {
     const theme = localStorage.getItem("theme");
@@ -9,7 +11,6 @@ const clearLocalStorageExceptTheme = () => {
         localStorage.setItem("theme", theme);
     }
 };
-
 
 export default function Header() {
     const { theme, toggleTheme } = useTheme();
@@ -48,19 +49,18 @@ export default function Header() {
             const data = await res.json();
 
             if (res.ok) {
-                console.log(data.message || "Logged out");
+                toast.success(data.message || "Logged out successfully");
             } else {
-                console.error("Logout failed:", data?.message || res.statusText);
+                toast.error(data?.message || "Logout failed");
             }
         } catch (err) {
+            toast.error("Network error during logout");
             console.error("Logout error:", err.message || err);
         }
 
-        // Always clear localStorage (except theme) and redirect
         clearLocalStorageExceptTheme();
         navigate("/");
     };
-
 
     return (
         <header className="flex justify-between items-center px-6 py-3 transition-colors">
