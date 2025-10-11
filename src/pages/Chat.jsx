@@ -1,4 +1,3 @@
-// src/pages/Chat.jsx
 import { useEffect, useRef, useState } from "react";
 import Typed from "typed.js";
 import { X, Bot } from "lucide-react";
@@ -9,9 +8,20 @@ import { useNavigate } from "react-router-dom";
 
 export default function Chat() {
     const { theme } = useTheme();
-
     const navigate = useNavigate();
-    const [messages, setMessages] = useState([]); // { role, text, images, isTyping, id }
+
+    useEffect(() => {
+        const isLoggedIn = localStorage.getItem("is_loggedin") === "true";
+        const accessToken = localStorage.getItem("access_token");
+        const userId = localStorage.getItem("user_id");
+
+        if (!isLoggedIn || !accessToken || !userId) {
+            localStorage.clear();
+            navigate("/setup", { replace: true });
+        }
+    }, [navigate]);
+
+    const [messages, setMessages] = useState([]);
     const [input, setInput] = useState("");
     const [previews, setPreviews] = useState([]);
     const typedRef = useRef(null);
@@ -78,110 +88,50 @@ export default function Chat() {
     const sendToAgent = async (userMsg, botId) => {
         const agentUrl = localStorage.getItem("agent_url");
         const userId = localStorage.getItem("user_id");
-        const authToken = localStorage.getItem("user_auth_token");
-        const userChatSessionToken = localStorage.getItem("user_chat_session_token");
+        const accessToken = localStorage.getItem("access_token");
 
-        if (!agentUrl) {
+        if (!agentUrl || !userId || !accessToken) {
             updateBotMessage(botId, {
-                text: "Agent URL not configured. Please set it in Setup.",
+                text: "Missing configuration. Please ensure you're logged in and setup is complete.",
                 isTyping: false,
             });
             return;
         }
 
         try {
-            const headers = {
-                "Content-Type": "application/json",
-            };
-            if (userChatSessionToken) {
-                headers["Authorization"] = `Bearer ${userChatSessionToken}`;
-            }
-
-            const payload = {
-                prompt: userMsg.text,
-                user_id: userId,
-                user_auth_token: authToken,
-                images: userMsg.images || [],
-            };
-
-            const resp = await fetch(agentUrl.replace(/\/+$/, "") + "/chat", {
+            const resp = await fetch(`${agentUrl.replace(/\/+$/, "")}/api/v1/ai/mvp/chat`, {
                 method: "POST",
-                headers,
-                body: JSON.stringify(payload),
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${accessToken}`,
+                },
+                body: JSON.stringify({
+                    user_id: userId,
+                    auth_token: accessToken,
+                    query: userMsg.text,
+                }),
             });
 
-            if (!resp.ok) {
-                // try to parse server message
-                let serverMsg = resp.statusText || "Connection failed";
-                try {
-                    const j = await resp.json();
-                    serverMsg = j?.message || j?.error || serverMsg;
-                } catch (e) {
-                    // ignore
-                }
+            const data = await resp.json();
+
+            if (!resp.ok || data.status !== "success") {
                 updateBotMessage(botId, {
-                    text: `Connection Failed: ${serverMsg}`,
+                    text: `Error: ${data.message || "Unknown error occurred."}`,
                     isTyping: false,
                 });
                 return;
             }
 
-            // If response is streamable, read progressively
-            if (resp.body && resp.body.getReader) {
-                const reader = resp.body.getReader();
-                const decoder = new TextDecoder();
-                let done = false;
-                let accumulated = "";
-                let sawFirstChunk = false;
-
-                while (!done) {
-                    const { value, done: d } = await reader.read();
-                    done = d;
-                    if (value) {
-                        const chunk = decoder.decode(value, { stream: !done });
-                        accumulated += chunk;
-
-                        if (!sawFirstChunk) {
-                            sawFirstChunk = true;
-                            // stop typing animation, start showing first chunk
-                            updateBotMessage(botId, { isTyping: false, text: accumulated });
-                        } else {
-                            // update progressively
-                            updateBotMessage(botId, { text: accumulated });
-                        }
-                    }
-                }
-
-                if (!sawFirstChunk) {
-                    // no chunks received, fallback to text
-                    let txt = "";
-                    try {
-                        txt = await resp.text();
-                    } catch { }
-                    updateBotMessage(botId, { isTyping: false, text: txt || "No reply from agent" });
-                }
-            } else {
-                // fallback: parse as json or text
-                let parsed = "";
-                try {
-                    const j = await resp.json();
-                    parsed = j?.text || j?.message || JSON.stringify(j);
-                } catch {
-                    try {
-                        parsed = await resp.text();
-                    } catch {
-                        parsed = "";
-                    }
-                }
-                updateBotMessage(botId, { isTyping: false, text: parsed || "No reply from agent" });
-            }
+            const aiReply = data.ai_response?.reply || "No response from AI.";
+            updateBotMessage(botId, { isTyping: false, text: aiReply });
         } catch (err) {
             updateBotMessage(botId, {
-                text: `Connection Failed: ${err?.message || String(err)}`,
+                text: `Connection error: ${err?.message || String(err)}`,
                 isTyping: false,
             });
         }
     };
+
 
     const handleSend = async () => {
         if (!input.trim() && previews.length === 0) return;
