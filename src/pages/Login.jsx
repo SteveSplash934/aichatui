@@ -1,28 +1,24 @@
-/* global process */
-
 import { useState, useRef, useEffect } from "react";
 import { useTheme } from "../hook/useTheme";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
 
-export default function Setup() {
+export default function Login() {
     const { theme } = useTheme();
     const navigate = useNavigate();
 
     const [formData, setFormData] = useState({
-        userId: "",
-        agentUrl: "",
-        authToken: "",
+        email: "",
+        password: "",
     });
 
     const [errors, setErrors] = useState({
-        userId: "",
-        agentUrl: "",
-        authToken: "",
+        email: "",
+        password: "",
     });
 
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [alert, setAlert] = useState(null); // { type: "success" | "error", message: string }
+    const [alert, setAlert] = useState(null);
     const alertTimeoutRef = useRef(null);
 
     useEffect(() => {
@@ -30,12 +26,8 @@ export default function Setup() {
             if (alertTimeoutRef.current) {
                 clearTimeout(alertTimeoutRef.current);
             }
-
         };
     }, []);
-
-    const uuidv4Regex =
-        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
     const showAlert = (type, message) => {
         if (alertTimeoutRef.current) {
@@ -51,21 +43,12 @@ export default function Setup() {
     };
 
     const validateFieldLocal = (name, value) => {
-        // returns error string
         const v = (value || "").toString().trim();
         if (!v) return "This field is required";
 
-        if (name === "userId") {
-            if (!uuidv4Regex.test(v)) return "Must be a valid UUID v4";
-        }
-
-        if (name === "agentUrl") {
-            try {
-                // Use URL constructor; allows http/https
-                new URL(v);
-            } catch {
-                return "Must be a valid URL";
-            }
+        if (name === "email") {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(v)) return "Must be a valid email";
         }
 
         return "";
@@ -79,9 +62,8 @@ export default function Setup() {
 
     const validateAll = () => {
         const next = {};
-        next.userId = validateFieldLocal("userId", formData.userId);
-        next.agentUrl = validateFieldLocal("agentUrl", formData.agentUrl);
-        next.authToken = validateFieldLocal("authToken", formData.authToken);
+        next.email = validateFieldLocal("email", formData.email);
+        next.password = validateFieldLocal("password", formData.password);
         setErrors((prev) => ({ ...prev, ...next }));
         return Object.values(next).every((e) => e === "");
     };
@@ -89,16 +71,13 @@ export default function Setup() {
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData((prev) => ({ ...prev, [name]: value }));
-        // Clear any global alert when user types
         if (alert) {
             setAlert(null);
-
             if (alertTimeoutRef.current) {
                 clearTimeout(alertTimeoutRef.current);
                 alertTimeoutRef.current = null;
             }
         }
-        // validate live
         validateField(name, value);
     };
 
@@ -111,7 +90,6 @@ export default function Setup() {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // validate all before submit (this also sets inline errors)
         const ok = validateAll();
         if (!ok) return;
 
@@ -119,15 +97,14 @@ export default function Setup() {
         setAlert(null);
 
         try {
-            const response = await fetch(`${formData.agentUrl.replace(/\/+$/, "") + "/connect"}`, {
+            const response = await fetch("/connect", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "X-Client-Secret": process.env.REACT_APP_CLIENT_SECRET,
                 },
                 body: JSON.stringify({
-                    user_id: formData.userId,
-                    user_auth_token: formData.authToken,
+                    email: formData.email,
+                    password: formData.password,
                 }),
             });
 
@@ -139,32 +116,16 @@ export default function Setup() {
             }
 
             if (!response.ok) {
-                // prefer server message if present
-                const serverMsg = res?.message || res?.error || response.statusText || "Failed to connect to agent, make sure agent is corrent or alive and try again";
-                showAlert("error", `Connection Failed: ${serverMsg}`);
+                const serverMsg = res?.message || res?.error || response.statusText || "Login failed. Please try again.";
+                showAlert("error", `Login Failed: ${serverMsg}`);
                 return;
             }
 
-            // store requested items for next screen
-            localStorage.setItem("user_id", formData.userId);
-            localStorage.setItem("user_auth_token", formData.authToken);
-            localStorage.setItem("agent_url", formData.agentUrl);
-
-            // Store the server agent token safely!
-            const issuedToken = res?.user_chat_session_token || null;
-
-            if (issuedToken) {
-                localStorage.setItem("user_chat_session_token", issuedToken);
-            }
-
-            // success alert with possible returned user name
-            const displayName = res?.user?.firstname || res?.user?.name || "User";
-            showAlert("success", `Successfully connected to Agent: ${formData.agentUrl} as ${displayName}`);
-
-            // navigate after a short delay so user can read the alert
+            showAlert("success", `Welcome back, ${res?.user?.firstname || "User"}!`);
             setTimeout(() => navigate("/chat"), 1600);
+
         } catch (err) {
-            showAlert("error", `Connection Failed: ${err?.message || String(err)}`);
+            showAlert("error", `Login Failed: ${err?.message || String(err)}`);
         } finally {
             setIsSubmitting(false);
         }
@@ -176,7 +137,6 @@ export default function Setup() {
 
     return (
         <div className="flex flex-col items-center justify-center w-full h-full px-4 transition-colors duration-300">
-            {/* Back Button */}
             <div className="w-full max-w-[350px] mb-4">
                 <button
                     onClick={() => navigate(-1)}
@@ -190,15 +150,13 @@ export default function Setup() {
                 </button>
             </div>
 
-            {/* Title */}
             <h1 className="text-2xl md:text-3xl font-heading font-semibold text-center mb-2">
                 Welcome!
             </h1>
             <p className="text-center text-sm text-gray-600 dark:text-dark-placeholder mb-6">
-                Please enter your setup info to continue
+                Please enter your login info to continue
             </p>
 
-            {/* Alert Box (auto-dismisses after 5s) */}
             {alert && (
                 <div
                     className={`w-full max-w-[350px] mb-5 px-4 py-2 rounded-lg text-sm font-medium border 
@@ -211,78 +169,55 @@ export default function Setup() {
                 </div>
             )}
 
-            {/* Form */}
             <form
                 onSubmit={handleSubmit}
                 className="w-full max-w-[350px] space-y-5 mx-auto"
             >
-                {/* User ID */}
+                {/* Email */}
                 <div className="relative">
-                    <label htmlFor="userId" className="block text-sm font-medium mb-1">
-                        User ID
+                    <label htmlFor="email" className="block text-sm font-medium mb-1">
+                        Email
                     </label>
                     <input
-                        type="text"
-                        id="userId"
-                        name="userId"
-                        placeholder="Enter your ID here"
-                        value={formData.userId}
+                        type="email"
+                        id="email"
+                        name="email"
+                        placeholder="Enter your email"
+                        value={formData.email}
                         onChange={handleChange}
-                        className={`${inputBase} ${theme === "dark" ? darkInput : lightInput} ${errors.userId && "border-red-500 focus:ring-red-500"}`}
+                        className={`${inputBase} ${theme === "dark" ? darkInput : lightInput} ${errors.email && "border-red-500 focus:ring-red-500"}`}
                     />
-                    {isFieldValid("userId") && (
+                    {isFieldValid("email") && (
                         <CheckCircle2 className="w-5 h-5 text-green-500 absolute right-3 top-9" />
                     )}
-                    {errors.userId && (
-                        <p className="text-red-500 text-xs mt-1">{errors.userId}</p>
+                    {errors.email && (
+                        <p className="text-red-500 text-xs mt-1">{errors.email}</p>
                     )}
                 </div>
 
-                {/* Agent URL */}
+                {/* Password */}
                 <div className="relative mt-2">
-                    <label htmlFor="agentUrl" className="block text-sm font-medium mb-1">
-                        Agent URL
+                    <label htmlFor="password" className="block text-sm font-medium mb-1">
+                        Password
                     </label>
                     <input
-                        type="text"
-                        id="agentUrl"
-                        name="agentUrl"
-                        placeholder="Enter your agent URL here"
-                        value={formData.agentUrl}
+                        type="password"
+                        id="password"
+                        name="password"
+                        placeholder="Enter your password"
+                        value={formData.password}
                         onChange={handleChange}
-                        className={`${inputBase} ${theme === "dark" ? darkInput : lightInput} ${errors.agentUrl && "border-red-500 focus:ring-red-500"}`}
+                        className={`${inputBase} ${theme === "dark" ? darkInput : lightInput} ${errors.password && "border-red-500 focus:ring-red-500"}`}
                     />
-                    {isFieldValid("agentUrl") && (
+                    {isFieldValid("password") && (
                         <CheckCircle2 className="w-5 h-5 text-green-500 absolute right-3 top-9" />
                     )}
-                    {errors.agentUrl && (
-                        <p className="text-red-500 text-xs mt-1">{errors.agentUrl}</p>
+                    {errors.password && (
+                        <p className="text-red-500 text-xs mt-1">{errors.password}</p>
                     )}
                 </div>
 
-                {/* Auth Token */}
-                <div className="relative mt-2">
-                    <label htmlFor="authToken" className="block text-sm font-medium mb-1">
-                        User Auth Token
-                    </label>
-                    <input
-                        type="text"
-                        id="authToken"
-                        name="authToken"
-                        placeholder="Enter your user auth token here"
-                        value={formData.authToken}
-                        onChange={handleChange}
-                        className={`${inputBase} ${theme === "dark" ? darkInput : lightInput} ${errors.authToken && "border-red-500 focus:ring-red-500"}`}
-                    />
-                    {isFieldValid("authToken") && (
-                        <CheckCircle2 className="w-5 h-5 text-green-500 absolute right-3 top-9" />
-                    )}
-                    {errors.authToken && (
-                        <p className="text-red-500 text-xs mt-1">{errors.authToken}</p>
-                    )}
-                </div>
-
-                {/* Continue Button */}
+                {/* Login Button */}
                 <button
                     type="submit"
                     disabled={!isFormValid || isSubmitting}
@@ -294,7 +229,7 @@ export default function Setup() {
                             : "bg-dark-button-muted text-dark-placeholder cursor-not-allowed"}
                     `}
                 >
-                    {isSubmitting ? "Connecting..." : "Continue"}
+                    {isSubmitting ? "Connecting..." : "Login"}
                 </button>
             </form>
         </div>

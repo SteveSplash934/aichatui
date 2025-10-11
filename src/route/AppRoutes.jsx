@@ -1,9 +1,10 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import MainLayout from "../layout/MainLayout";
 import Welcome from "../pages/Welcome";
-import Setup from "../pages/Setup";
+import Setup from "../pages/Login";
 import Chat from "../pages/Chat";
 import NotFound from "../pages/NotFound";
+import AgentSetup from "../pages/AgentSetup";
 
 export default function AppRoutes() {
     return (
@@ -15,9 +16,13 @@ export default function AppRoutes() {
                     <Welcome />
                 </MainLayout>
             } />
-
+            <Route path="/setup" element={
+                <MainLayout>
+                    <AgentSetup />
+                </MainLayout>
+            } />
             <Route
-                path="/setup"
+                path="/login"
                 element={
                     <MainLayout>
                         <Setup />
@@ -38,6 +43,5 @@ export default function AppRoutes() {
                 </MainLayout>
             } />
         </Routes>
-
     );
 }
