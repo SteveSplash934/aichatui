@@ -95,6 +95,13 @@ export default function Login() {
         Object.values(formData).every((v) => v.trim()) &&
         Object.values(errors).every((err) => err === "");
 
+    // ✅ Utility function to clean both base and path
+    const buildApiUrl = (base, path) => {
+        const cleanBase = base?.replace(/\/+$/, "");   // removes trailing slashes
+        const cleanPath = path?.replace(/^\/+/, "");   // removes leading slashes
+        return `${cleanBase}/${cleanPath}`;
+    }
+
     const handleSubmit = async (e) => {
         e.preventDefault();
 
@@ -106,8 +113,8 @@ export default function Login() {
 
         try {
             const agentUrl = localStorage.getItem("agent_url");
-
-            const response = await fetch(`${agentUrl}/api/v1/auth/login`, {
+            const loginUrl = buildApiUrl(agentUrl, "/api/v1/auth/login");
+            const response = await fetch(`${loginUrl}`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
