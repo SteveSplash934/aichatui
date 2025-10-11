@@ -4,13 +4,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import toast from 'react-hot-toast';
 
 
-const clearLocalStorageExceptTheme = () => {
-    const theme = localStorage.getItem("theme");
-    localStorage.clear();
-    if (theme) {
-        localStorage.setItem("theme", theme);
-    }
-};
+
 
 export default function Header() {
     const { theme, toggleTheme } = useTheme();
@@ -19,11 +13,23 @@ export default function Header() {
 
     const isChatPage = location.pathname === "/chat";
 
+    const clearLocalStorageExceptTheme = () => {
+        const theme = localStorage.getItem("theme");
+        localStorage.clear();
+        if (theme) {
+            localStorage.setItem("theme", theme);
+        }
+    };
+
     const handleLogoClick = () => {
-        const sessionToken = localStorage.getItem("user_chat_session_token");
-        if (sessionToken) {
+        const accessToken = localStorage.getItem("access_token");
+        const userId = localStorage.getItem("user_id");
+        const agentUrl = localStorage.getItem("agent_url");
+
+        if (accessToken && userId && agentUrl) {
             navigate("/chat");
         } else {
+            clearLocalStorageExceptTheme();
             navigate("/");
         }
     };
