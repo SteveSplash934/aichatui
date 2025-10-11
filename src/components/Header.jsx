@@ -2,6 +2,15 @@ import { Sun, Moon, MessageSquare, LogOut } from "lucide-react";
 import { useTheme } from "../hook/useTheme";
 import { useLocation, useNavigate } from "react-router-dom";
 
+const clearLocalStorageExceptTheme = () => {
+    const theme = localStorage.getItem("theme");
+    localStorage.clear();
+    if (theme) {
+        localStorage.setItem("theme", theme);
+    }
+};
+
+
 export default function Header() {
     const { theme, toggleTheme } = useTheme();
     const location = useLocation();
@@ -18,16 +27,40 @@ export default function Header() {
         }
     };
 
-    const handleLogout = () => {
-        // Clear all authentication-related localStorage items
-        localStorage.removeItem("user_id");
-        localStorage.removeItem("user_auth_token");
-        localStorage.removeItem("agent_url");
-        localStorage.removeItem("user_chat_session_token");
+    const handleLogout = async () => {
+        const token = localStorage.getItem("access_token");
 
-        // Redirect to home/login page
+        if (!token) {
+            clearLocalStorageExceptTheme();
+            navigate("/");
+            return;
+        }
+
+        try {
+            const res = await fetch("http://localhost:8000/api/v1/auth/logout", {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${token}`,
+                    "Content-Type": "application/json",
+                },
+            });
+
+            const data = await res.json();
+
+            if (res.ok) {
+                console.log(data.message || "Logged out");
+            } else {
+                console.error("Logout failed:", data?.message || res.statusText);
+            }
+        } catch (err) {
+            console.error("Logout error:", err.message || err);
+        }
+
+        // Always clear localStorage (except theme) and redirect
+        clearLocalStorageExceptTheme();
         navigate("/");
     };
+
 
     return (
         <header className="flex justify-between items-center px-6 py-3 transition-colors">
