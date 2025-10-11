@@ -1,3 +1,5 @@
+/* global process */
+
 import { useState, useRef, useEffect } from "react";
 import { useTheme } from "../hook/useTheme";
 import { useNavigate } from "react-router-dom";
@@ -117,10 +119,11 @@ export default function Setup() {
         setAlert(null);
 
         try {
-            const response = await fetch(`${formData.agentUrl.replace(/\/+$/, "")}`, {
+            const response = await fetch(`${formData.agentUrl.replace(/\/+$/, "") + "/connect"}`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
+                    "X-Client-Secret": process.env.REACT_APP_CLIENT_SECRET,
                 },
                 body: JSON.stringify({
                     user_id: formData.userId,
