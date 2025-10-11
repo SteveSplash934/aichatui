@@ -69,12 +69,13 @@ export default function Verify() {
 
         try {
             const agentUrl = localStorage.getItem("agent_url");
-            const cleanUrl = buildApiUrl(agentUrl + "/api/v1/auth/login/confirm-email-otp");
+            const cleanUrl = buildApiUrl(`${agentUrl}/api/v1/auth/login/confirm-email-otp`);
             const res = await fetch(`${cleanUrl}`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${tempToken}`,
+                    "Accept": "application/json"
                 },
                 body: JSON.stringify({ email, otp: code }),
             });
