@@ -3,9 +3,6 @@ import { useTheme } from "../hook/useTheme";
 import { useLocation, useNavigate } from "react-router-dom";
 import toast from 'react-hot-toast';
 
-
-
-
 export default function Header() {
     const { theme, toggleTheme } = useTheme();
     const location = useLocation();

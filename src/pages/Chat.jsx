@@ -275,22 +275,10 @@ export default function Chat() {
                                                 }`}
                                         >
                                             {m.isTyping ? (
-                                                <div className="flex items-center gap-3">
-                                                    <div className="flex items-center gap-1">
-                                                        <span
-                                                            className="inline-block w-2 h-2 rounded-full animate-bounce"
-                                                            style={{ animationDelay: "0s" }}
-                                                        />
-                                                        <span
-                                                            className="inline-block w-2 h-2 rounded-full animate-bounce"
-                                                            style={{ animationDelay: "0.12s" }}
-                                                        />
-                                                        <span
-                                                            className="inline-block w-2 h-2 rounded-full animate-bounce"
-                                                            style={{ animationDelay: "0.24s" }}
-                                                        />
-                                                    </div>
-                                                    <span className="text-sm opacity-80">typing</span>
+                                                <div className="typing-indicator text-gray-500 dark:text-gray-300">
+                                                    <span></span>
+                                                    <span></span>
+                                                    <span></span>
                                                 </div>
                                             ) : (
                                                 <p className="whitespace-pre-wrap">{m.text}</p>
