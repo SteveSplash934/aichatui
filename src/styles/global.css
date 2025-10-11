@@ -43,6 +43,12 @@
     transition: background-color 0.3s ease, color 0.3s ease;
   }
 
+  input,
+  textarea,
+  select {
+    @apply text-base;
+  }
+
   [data-theme='dark'] {
     background-color: var(--color-dark-bg);
     color: #F5F5F5;
@@ -148,4 +154,16 @@
     }
   }
 
+  /* Prevent iOS auto zoom on inputs by default */
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+
+  input:focus,
+  textarea:focus,
+  select:focus {
+    @apply outline-none ring-0 shadow-none;
+  }
 }

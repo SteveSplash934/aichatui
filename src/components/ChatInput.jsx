@@ -73,7 +73,7 @@ export default function ChatInput({
                             }
                         }}
                         placeholder={placeholder}
-                        className={`w-full resize-none bg-transparent border-none focus:outline-none text-sm md:text-base ${placeholderColor}`}
+                        className={`w-full resize-none bg-transparent border-none focus:outline-none text-[16px] md:text-base ${placeholderColor}`}
                     />
                 </div>
 
