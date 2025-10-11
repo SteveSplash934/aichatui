@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useTheme } from "../hook/useTheme";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
+import { buildApiUrl } from "../utils/utils"
 
 export default function Verify() {
     const { theme } = useTheme();
@@ -67,7 +68,9 @@ export default function Verify() {
         setAlert(null);
 
         try {
-            const res = await fetch(`${agentUrl}/api/v1/auth/login/confirm-email-otp`, {
+            const agentUrl = localStorage.getItem("agent_url");
+            const cleanUrl = buildApiUrl(agentUrl + "/api/v1/auth/login/confirm-email-otp");
+            const res = await fetch(`${cleanUrl}`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

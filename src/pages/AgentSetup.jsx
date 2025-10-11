@@ -3,7 +3,7 @@ import { useTheme } from "../hook/useTheme";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import { Switch } from "@headlessui/react";
-
+import { buildApiUrl } from "../utils/utils"
 
 export default function Setup() {
     const { theme } = useTheme();
@@ -64,13 +64,14 @@ export default function Setup() {
         setError("");
 
         try {
-            const response = await fetch(urlToUse, { method: "GET" });
+            const cleanUrl = buildApiUrl(urlToUse);
+            const response = await fetch(cleanUrl, { method: "GET" });
 
             if (!response.ok) {
                 throw new Error("Agent did not respond with 200 OK");
             }
 
-            localStorage.setItem("agent_url", urlToUse);
+            localStorage.setItem("agent_url", cleanUrl);
 
             showAlert("success", `Successfully connected to agent at: ${urlToUse}`);
 
