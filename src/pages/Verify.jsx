@@ -3,7 +3,7 @@ import { useTheme } from "../hook/useTheme";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 
-export default function EmailVerification() {
+export default function Verify() {
     const { theme } = useTheme();
     const navigate = useNavigate();
     const [otp, setOtp] = useState(["", "", "", "", "", ""]);
@@ -82,9 +82,21 @@ export default function EmailVerification() {
                 throw new Error(data?.message || "OTP verification failed.");
             }
 
-            localStorage.setItem("access_token", data?.data?.access_token);
+            const { access_token, user } = data?.data || {};
+
+            // Store the real token and basic user info
+            localStorage.setItem("access_token", access_token);
             localStorage.setItem("is_loggedin", "true");
 
+            localStorage.removeItem("temp_token");
+            localStorage.removeItem("email");
+            document.cookie = "allow_verification=; max-age=0; path=/;";
+
+            if (user?.id) localStorage.setItem("user_id", user.id);
+            if (user?.firstname) localStorage.setItem("firstname", user.firstname);
+            if (user?.lastname) localStorage.setItem("lastname", user.lastname);
+
+            // Navigate to chat
             navigate("/chat");
 
         } catch (err) {
