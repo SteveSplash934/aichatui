@@ -5,6 +5,7 @@ import { useTheme } from "../hook/useTheme";
 import useGlobalDragDrop from "../hook/useGlobalDragDrop";
 import ChatInput from "../components/ChatInput";
 import { useNavigate } from "react-router-dom";
+import { buildApiUrl } from "../utils/utils"
 
 export default function Chat() {
     const { theme } = useTheme();
@@ -99,16 +100,17 @@ export default function Chat() {
         }
 
         try {
-            const resp = await fetch(`${agentUrl.replace(/\/+$/, "")}/api/v1/ai/mvp/chat`, {
+            const resp = await fetch(buildApiUrl(`${agentUrl}/api/v1/ai/mvp/chat`), {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                     "Authorization": `Bearer ${accessToken}`,
+                    "Accept": "application/json"
                 },
                 body: JSON.stringify({
-                    user_id: userId,
-                    auth_token: accessToken,
-                    query: userMsg.text,
+                    // user_id: userId,
+                    // auth_token: accessToken,
+                    message: userMsg.text,
                 }),
             });
 
@@ -131,7 +133,6 @@ export default function Chat() {
             });
         }
     };
-
 
     const handleSend = async () => {
         if (!input.trim() && previews.length === 0) return;
