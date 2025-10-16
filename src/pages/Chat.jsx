@@ -7,6 +7,10 @@ import ChatInput from "../components/ChatInput";
 import { useNavigate } from "react-router-dom";
 import { buildApiUrl } from "../utils/utils"
 import toast from 'react-hot-toast'
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import rehypeHighlight from "rehype-highlight";
+
 
 export default function Chat() {
     const { theme } = useTheme();
@@ -271,8 +275,14 @@ export default function Chat() {
                                                     <span></span>
                                                 </div>
                                             ) : (
-                                                <p className="whitespace-pre-wrap">{m.text}</p>
+                                                <div className="prose max-w-none dark:prose-invert prose-p:my-1 prose-pre:my-2 prose-code:text-sm">
+                                                    <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
+                                                        {m.text}
+                                                    </ReactMarkdown>
+                                                </div>
+
                                             )}
+
                                         </div>
                                     )}
                                 </div>
