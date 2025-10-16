@@ -6,6 +6,7 @@ import useGlobalDragDrop from "../hook/useGlobalDragDrop";
 import ChatInput from "../components/ChatInput";
 import { useNavigate } from "react-router-dom";
 import { buildApiUrl } from "../utils/utils"
+import toast from 'react-hot-toast'
 
 export default function Chat() {
     const { theme } = useTheme();
@@ -92,10 +93,7 @@ export default function Chat() {
         const accessToken = localStorage.getItem("access_token");
 
         if (!agentUrl || !userId || !accessToken) {
-            updateBotMessage(botId, {
-                text: "Missing configuration. Please ensure you're logged in and setup is complete.",
-                isTyping: false,
-            });
+            toast.error("Missing configuration. Please ensure you're logged in and setup is complete.");
             return;
         }
 
@@ -108,29 +106,20 @@ export default function Chat() {
                     "Accept": "application/json"
                 },
                 body: JSON.stringify({
-                    // user_id: userId,
-                    // auth_token: accessToken,
                     message: userMsg.text,
                 }),
             });
 
             const data = await resp.json();
 
-            if (!resp.ok || data.status !== "success") {
-                updateBotMessage(botId, {
-                    text: `Error: ${data.message || "Unknown error occurred."}`,
-                    isTyping: false,
-                });
+            if (!resp.ok || data?.status !== "completed") {
+                toast.error(data?.message || "Unknown error occurred.");
                 return;
             }
 
-            const aiReply = data.ai_response?.reply || "No response from AI.";
-            updateBotMessage(botId, { isTyping: false, text: aiReply });
+            updateBotMessage(botId, { isTyping: false, text: data?.response });
         } catch (err) {
-            updateBotMessage(botId, {
-                text: `Connection error: ${err?.message || String(err)}`,
-                isTyping: false,
-            });
+            toast.error(err?.message || String(err));
         }
     };
 
@@ -166,7 +155,7 @@ export default function Chat() {
         sendToAgent(userMsg, botId);
     };
 
-    const inputBg = theme === "dark" ? "bg-dark-bg" : "bg-white";
+    // const inputBg = theme === "dark" ? "bg-dark-bg" : "bg-white";
 
     return (
         <div className="flex flex-col h-full w-full relative transition-colors duration-300">
