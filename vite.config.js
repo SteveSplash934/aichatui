@@ -15,5 +15,6 @@ export default defineConfig({
     ]
     // host: "192.168.137.1",
     // port: 8080
-  }
+  },
+  assetsInclude: ['**/*.lottie'],
 })
