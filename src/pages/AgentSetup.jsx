@@ -1,20 +1,22 @@
 import { useState, useRef, useEffect } from "react";
 import { useTheme } from "../hook/useTheme";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, CheckCircle2, XCircle } from "lucide-react";
 import { Switch } from "@headlessui/react";
 import { buildApiUrl } from "../utils/utils"
 
 export default function Setup() {
+
     const { theme } = useTheme();
     const navigate = useNavigate();
-
     const [agentUrl, setAgentUrl] = useState("");
-    const [useDefault, setUseDefault] = useState(false);
     const [error, setError] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [alert, setAlert] = useState(null);
     const alertTimeoutRef = useRef(null);
+    const [defaultUrlStatus, setDefaultUrlStatus] = useState("idle");
+    const [useDefault, setUseDefault] = useState(true);
+    const urlToUse = useDefault ? "https://dman.stevesplashhub.space" : agentUrl.trim();
 
     useEffect(() => {
         return () => {
@@ -23,6 +25,31 @@ export default function Setup() {
             }
         };
     }, []);
+
+    useEffect(() => {
+        if (!useDefault) {
+            setDefaultUrlStatus("idle");
+            return;
+        }
+
+        const testDefaultUrl = async () => {
+            try {
+                const cleanUrl = buildApiUrl(urlToUse);
+                const response = await fetch(cleanUrl, { method: "GET" });
+
+                if (!response.ok) {
+                    throw new Error("Agent did not respond with 200 OK");
+                }
+
+                setDefaultUrlStatus("success");
+            } catch {
+                setDefaultUrlStatus("error");
+            }
+        };
+
+        testDefaultUrl();
+    }, [useDefault, urlToUse]);
+
 
     const showAlert = (type, message) => {
         if (alertTimeoutRef.current) {
@@ -47,9 +74,11 @@ export default function Setup() {
         }
     };
 
-    const urlToUse = useDefault ? "http://localhost:8000" : agentUrl.trim();
     const currentError = useDefault ? "" : validateUrl(agentUrl);
-    const isInputValid = useDefault || (agentUrl && currentError === "");
+    const isInputValid = useDefault
+        ? defaultUrlStatus === "success"
+        : agentUrl && currentError === "";
+
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -65,20 +94,24 @@ export default function Setup() {
 
         try {
             const cleanUrl = buildApiUrl(urlToUse);
-            const response = await fetch(cleanUrl, { method: "GET" });
 
-            if (!response.ok) {
-                throw new Error("Agent did not respond with 200 OK");
+            if (!useDefault) {
+                const response = await fetch(cleanUrl, { method: "GET" });
+                if (!response.ok) {
+                    throw new Error("Agent did not respond with 200 OK");
+                }
             }
 
             localStorage.setItem("agent_url", cleanUrl);
 
-            showAlert("success", `Successfully connected to agent at: ${urlToUse}`);
+            if (!useDefault) {
+                showAlert("success", `Successfully connected to agent at: ${urlToUse}`);
 
-            setTimeout(() => {
-                navigate("/login");
-            }, 2000);
-
+                setTimeout(() => {
+                    navigate("/login");
+                }, 2000);
+            }
+            navigate("/login");
         } catch (err) {
             showAlert("error", `Connection Failed: ${err.message || "Unknown error"}`);
         } finally {
@@ -109,10 +142,10 @@ export default function Setup() {
 
             {/* Title */}
             <h1 className="text-2xl md:text-3xl font-heading font-semibold text-center mb-2">
-                Welcome!
+                Agent Setup
             </h1>
             <p className="text-center text-sm text-gray-600 dark:text-dark-placeholder mb-6">
-                Please enter your setup info to continue
+                Configure your connection settings to continue
             </p>
 
             {/* Alert */}
@@ -134,32 +167,33 @@ export default function Setup() {
                 className="w-full max-w-[350px] space-y-5 mx-auto"
             >
                 {/* Agent URL Input */}
-                <div className="relative">
-                    <label htmlFor="agentUrl" className="block text-sm font-medium mb-1">
-                        Agent URL
-                    </label>
-                    <input
-                        type="text"
-                        id="agentUrl"
-                        name="agentUrl"
-                        placeholder="Enter your agent URL here"
-                        value={agentUrl}
-                        onChange={(e) => {
-                            setAgentUrl(e.target.value);
-                            setAlert(null);
-                            setError(validateUrl(e.target.value));
-                        }}
-                        disabled={useDefault}
-                        className={`${inputBase} ${theme === "dark" ? darkInput : lightInput} ${error && "border-red-500 focus:ring-red-500"} ${useDefault && "opacity-50 cursor-not-allowed"}`}
-                    />
-                    {!error && agentUrl && !useDefault && (
-                        <CheckCircle2 className="w-5 h-5 text-green-500 absolute right-3 top-9" />
-                    )}
-                    {error && !useDefault && (
-                        <p className="text-red-500 text-xs mt-1">{error}</p>
-                    )}
-                </div>
-
+                {!useDefault && (
+                    <div className="relative">
+                        <label htmlFor="agentUrl" className="block text-sm font-medium mb-1">
+                            Agent URL
+                        </label>
+                        <input
+                            type="text"
+                            id="agentUrl"
+                            name="agentUrl"
+                            placeholder="Enter your agent URL here"
+                            value={agentUrl}
+                            onChange={(e) => {
+                                setAgentUrl(e.target.value);
+                                setAlert(null);
+                                setError(validateUrl(e.target.value));
+                            }}
+                            disabled={useDefault}
+                            className={`${inputBase} ${theme === "dark" ? darkInput : lightInput} ${error && "border-red-500 focus:ring-red-500"} ${useDefault && "opacity-50 cursor-not-allowed"}`}
+                        />
+                        {!error && agentUrl && !useDefault && (
+                            <CheckCircle2 className="w-5 h-5 text-green-500 absolute right-3 top-9" />
+                        )}
+                        {error && !useDefault && (
+                            <p className="text-red-500 text-xs mt-1">{error}</p>
+                        )}
+                    </div>
+                )}
                 {/* Use Default Agent URL Checkbox */}
 
                 <div className="mt-2 flex items-center justify-between">
@@ -177,7 +211,13 @@ export default function Setup() {
                         />
                     </Switch>
                 </div>
-
+                {useDefault && (
+                    <p className="mt-1 text-sm text-gray-700 dark:text-dark-placeholder flex justify-between items-center">
+                        <span>Default URL: {urlToUse}</span>
+                        {defaultUrlStatus === "success" && <CheckCircle2 className="w-5 h-5 text-green-500" />}
+                        {defaultUrlStatus === "error" && <XCircle className="w-5 h-5 text-red-500" />}
+                    </p>
+                )}
 
                 {/* Connect Button */}
                 <button
@@ -191,7 +231,8 @@ export default function Setup() {
                             : "bg-dark-button-muted text-dark-placeholder cursor-not-allowed"}
                     `}
                 >
-                    {isSubmitting ? "Connecting..." : "Connect"}
+                    {isSubmitting ? (useDefault ? "Please wait" : "Connecting...") : (useDefault ? "Proceed" : "Connect")}
+
                 </button>
             </form>
         </div>
