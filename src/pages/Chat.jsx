@@ -1,6 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import Typed from "typed.js";
-import { X, Bot } from "lucide-react";
+import {
+    X,
+    Bot,
+    Clipboard,
+    ThumbsUp,
+    ThumbsDown,
+    RotateCcw
+} from "lucide-react";
+
 import { useTheme } from "../hook/useTheme";
 import useGlobalDragDrop from "../hook/useGlobalDragDrop";
 import ChatInput from "../components/ChatInput";
@@ -32,6 +40,9 @@ export default function Chat() {
     const [previews, setPreviews] = useState([]);
     const typedRef = useRef(null);
     const chatEndRef = useRef(null);
+    // check if bot is typing (any bot message with isTyping true)
+    const isBotTyping = messages.some(msg => msg.role === "bot" && msg.isTyping);
+
 
     const { isDragging } = useGlobalDragDrop((files) => {
         const imgs = files.filter((f) => f.type.startsWith("image/"));
@@ -128,6 +139,9 @@ export default function Chat() {
     };
 
     const handleSend = async () => {
+        const isBotTyping = messages.some(m => m.role === "bot" && m.isTyping === true);
+        if (isBotTyping) return; // do nothing if AI is still responding
+
         if (!input.trim() && previews.length === 0) return;
 
         const userMsg = {
@@ -197,7 +211,7 @@ export default function Chat() {
                             handleSend={handleSend}
                             handleDrop={handleDrop}
                             placeholder="Ask anything to start chat"
-                            sendEnabled={input.trim() || previews.length > 0}
+                            sendEnabled={!isBotTyping && (input.trim() !== "" || previews.length > 0)}
                         />
                         {previews.length > 0 && (
                             <div className="mt-3 flex flex-wrap gap-2 justify-center">
@@ -230,6 +244,7 @@ export default function Chat() {
                                 className={`flex items-start gap-3 ${m.role === "user" ? "justify-end" : "justify-start"
                                     }`}
                             >
+                                {/* Bot avatar */}
                                 {m.role === "bot" && (
                                     <div
                                         className={`w-9 h-9 flex items-center justify-center rounded-full ${theme === "dark"
@@ -256,18 +271,28 @@ export default function Chat() {
                                         </div>
                                     )}
 
-                                    {/* Text bubble (show if text exists OR bot is typing) */}
-                                    {(m.text || (m.role === "bot" && m.isTyping)) && (
+                                    {/* ✅ USER MESSAGE */}
+                                    {m.role === "user" && m.text && (
                                         <div
-                                            className={`rounded-2xl px-4 py-2 break-words ${m.role === "user"
-                                                ? theme === "dark"
-                                                    ? "bg-dark-button-bg text-light-button-text self-end"
-                                                    : "bg-black text-white self-end"
-                                                : theme === "dark"
-                                                    ? "bg-dark-surface-bg text-dark-primary"
-                                                    : "bg-gray-100 text-black"
+                                            className={`rounded-2xl px-4 py-2 break-words self-end ${theme === "dark"
+                                                ? "bg-dark-button-bg text-light-button-text"
+                                                : "bg-black text-white"
                                                 }`}
                                         >
+                                            <div className="prose max-w-none dark:prose-invert prose-p:my-1 prose-pre:my-2 prose-code:text-sm">
+                                                <ReactMarkdown
+                                                    remarkPlugins={[remarkGfm]}
+                                                    rehypePlugins={[rehypeHighlight]}
+                                                >
+                                                    {m.text}
+                                                </ReactMarkdown>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* ✅ BOT MESSAGE */}
+                                    {m.role === "bot" && (m.text || m.isTyping) && (
+                                        <div className="flex flex-col gap-2">
                                             {m.isTyping ? (
                                                 <div className="typing-indicator text-gray-500 dark:text-gray-300">
                                                     <span></span>
@@ -275,14 +300,61 @@ export default function Chat() {
                                                     <span></span>
                                                 </div>
                                             ) : (
-                                                <div className="prose max-w-none dark:prose-invert prose-p:my-1 prose-pre:my-2 prose-code:text-sm">
-                                                    <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
-                                                        {m.text}
-                                                    </ReactMarkdown>
-                                                </div>
+                                                <>
+                                                    {/* Bot plain text (no bubble) */}
+                                                    <div className="prose max-w-none dark:prose-invert prose-p:my-1 prose-pre:my-2 prose-code:text-sm">
+                                                        <ReactMarkdown
+                                                            remarkPlugins={[remarkGfm]}
+                                                            rehypePlugins={[rehypeHighlight]}
+                                                        >
+                                                            {m.text}
+                                                        </ReactMarkdown>
+                                                    </div>
 
+                                                    {/* Bot Action Icons */}
+                                                    <div className="flex gap-4 items-center mt-1 text-gray-500 dark:text-gray-400">
+                                                        <button
+                                                            onClick={() => {
+                                                                navigator.clipboard.writeText(m.text);
+                                                                toast.success("Copied to clipboard");
+                                                            }}
+                                                            title="Copy"
+                                                        >
+                                                            <Clipboard className="w-4 h-4 hover:text-blue-500 dark:hover:text-blue-400 transition-colors" />
+                                                        </button>
+
+                                                        <button
+                                                            onClick={() => toast.success("You liked this response")}
+                                                            title="Like"
+                                                        >
+                                                            <ThumbsUp className="w-4 h-4 hover:text-green-500 dark:hover:text-green-400 transition-colors" />
+                                                        </button>
+
+                                                        <button
+                                                            onClick={() => toast("You disliked this response")}
+                                                            title="Dislike"
+                                                        >
+                                                            <ThumbsDown className="w-4 h-4 hover:text-red-500 dark:hover:text-red-400 transition-colors" />
+                                                        </button>
+
+                                                        <button
+                                                            onClick={() => {
+                                                                const lastUserMsg = messages
+                                                                    .slice()
+                                                                    .reverse()
+                                                                    .find((msg) => msg.role === "user");
+                                                                if (lastUserMsg) {
+                                                                    setInput(lastUserMsg.text);
+                                                                    handleSend();
+                                                                }
+                                                            }}
+                                                            title="Try again"
+                                                        >
+                                                            <RotateCcw className="w-4 h-4 hover:text-yellow-500 dark:hover:text-yellow-400 transition-colors" />
+                                                        </button>
+                                                    </div>
+                                                </>
                                             )}
-
                                         </div>
                                     )}
                                 </div>
@@ -290,6 +362,7 @@ export default function Chat() {
                         ))}
                         <div ref={chatEndRef} />
                     </div>
+
                 )}
             </div>
 
@@ -305,7 +378,7 @@ export default function Chat() {
                     handleSend={handleSend}
                     handleDrop={handleDrop}
                     placeholder="Type your message..."
-                    sendEnabled={input.trim() || previews.length > 0}
+                    sendEnabled={!isBotTyping && (input.trim() !== "" || previews.length > 0)}
                 />
             )}
 
