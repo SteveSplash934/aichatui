@@ -11,9 +11,9 @@ export default defineConfig({
   server: {
     historyApiFallback: true,
     allowedHosts: [
-      '6887c587097d.ngrok-free.app'
+      '297882fec450.ngrok-free.app'
     ]
-    // host: "192.168.137.1",
+    // host: "0.0.0.0",
     // port: 8080
   },
   assetsInclude: ['**/*.lottie'],

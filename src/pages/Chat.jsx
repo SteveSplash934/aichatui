@@ -173,8 +173,6 @@ export default function Chat() {
         sendToAgent(userMsg, botId);
     };
 
-    // const inputBg = theme === "dark" ? "bg-dark-bg" : "bg-white";
-
     return (
         <div className="flex flex-col h-full w-full relative transition-colors duration-300">
             {/* Global drag overlay */}
@@ -211,7 +209,7 @@ export default function Chat() {
                             handleSend={handleSend}
                             handleDrop={handleDrop}
                             placeholder="Ask anything to start chat"
-                            sendEnabled={!isBotTyping && (input.trim() !== "" || previews.length > 0)}
+                            sendPaused={isBotTyping}
                         />
                         {previews.length > 0 && (
                             <div className="mt-3 flex flex-wrap gap-2 justify-center">
@@ -378,7 +376,7 @@ export default function Chat() {
                     handleSend={handleSend}
                     handleDrop={handleDrop}
                     placeholder="Type your message..."
-                    sendEnabled={!isBotTyping && (input.trim() !== "" || previews.length > 0)}
+                    sendPaused={isBotTyping}
                 />
             )}
 

@@ -1,5 +1,5 @@
 import { useRef, useEffect } from "react";
-import { ArrowUp, Image as ImageIcon, X } from "lucide-react";
+import { ArrowUp, Image as ImageIcon, X, Square } from "lucide-react";
 
 export default function ChatInput({
     theme,
@@ -11,7 +11,7 @@ export default function ChatInput({
     handleSend,
     handleDrop,
     placeholder,
-    sendEnabled = true,
+    sendPaused = false,
 }) {
     const fileInputRef = useRef(null);
     const textareaRef = useRef(null);
@@ -77,23 +77,34 @@ export default function ChatInput({
                     />
                 </div>
 
-                {/* Send Button */}
+                {/* Send / Pause Button */}
                 <div className="flex items-center justify-center">
                     <button
                         onClick={handleSend}
-                        disabled={!sendEnabled}
-                        className={`p-3 rounded-full transition ${sendEnabled
-                            ? theme === "dark"
-                                ? "bg-white text-black"
-                                : "bg-black text-white"
-                            : theme === "dark"
-                                ? "bg-dark-surface-stroke text-dark-placeholder cursor-not-allowed"
-                                : "bg-gray-300 text-gray-400 cursor-not-allowed"
+                        disabled={!input.trim() && !previews.length}
+                        className={`p-2 rounded-full cursor-pointer transition 
+                            ${theme === "dark"
+                                ? sendPaused
+                                    ? "bg-dark-surface-stroke text-dark-button-text hover:bg-white hover:text-black"
+                                    : !input.trim() && !previews.length
+                                        ? "bg-dark-surface-stroke text-dark-placeholder cursor-not-allowed"
+                                        : "bg-white text-black hover:bg-dark-surface-stroke hover:text-dark-button-text"
+                                : sendPaused
+                                    ? "bg-gray-200 text-black hover:bg-black hover:text-white"
+                                    : !input.trim() && !previews.length
+                                        ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                                        : "bg-white text-black hover:bg-black hover:text-white"
                             }`}
+                        title={sendPaused ? "Pause" : "Send"}
                     >
-                        <ArrowUp className="w-5 h-5" />
+                        {sendPaused ? (
+                            <Square className="w-5 h-5" fill="currentColor" />
+                        ) : (
+                            <ArrowUp className="w-5 h-5" />
+                        )}
                     </button>
                 </div>
+
 
                 {/* Image previews */}
                 {previews.length > 0 && (
@@ -110,7 +121,7 @@ export default function ChatInput({
                                 />
                                 <button
                                     onClick={() => removePreview(i)}
-                                    className="absolute top-1 right-1 bg-black bg-opacity-60 rounded-full p-0.5 text-white"
+                                    className="absolute top-1 right-1 bg-black bg-opacity-60 rounded-full p-0.5 text-white cursor-pointer"
                                 >
                                     <X size={14} />
                                 </button>
